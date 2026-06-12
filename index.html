@@ -280,8 +280,18 @@ let user = null, currentView = 'dashboard', filterProj = '';
 
 /* ---------- Lưu trữ cục bộ ---------- */
 const store = {
-  get api(){ return localStorage.getItem('mdcpm_api') || DEFAULT_API; },
-  set api(v){ localStorage.setItem('mdcpm_api', v.trim()); },
+  get api(){
+    // Nếu localStorage lưu URL KHÁC với DEFAULT_API hiện tại VÀ chưa được người dùng
+    // chỉnh tay (cờ mdcpm_api_custom), thì bỏ URL cũ — luôn theo DEFAULT_API mới nhất.
+    // Khắc phục lỗi URL backend cũ kẹt trong localStorage trên từng thiết bị.
+    const saved = localStorage.getItem('mdcpm_api');
+    const isCustom = localStorage.getItem('mdcpm_api_custom') === '1';
+    if (saved && (isCustom || saved === DEFAULT_API)) return saved;
+    // Dọn URL cũ không khớp, dùng DEFAULT_API
+    if (saved && saved !== DEFAULT_API) localStorage.removeItem('mdcpm_api');
+    return DEFAULT_API;
+  },
+  set api(v){ localStorage.setItem('mdcpm_api', v.trim()); localStorage.setItem('mdcpm_api_custom', '1'); },
   loadState(){ try{ S = JSON.parse(localStorage.getItem('mdcpm_state')) || S; }catch(e){} },
   saveState(){ localStorage.setItem('mdcpm_state', JSON.stringify(S)); },
   get pending(){ try{ return JSON.parse(localStorage.getItem('mdcpm_pending'))||[]; }catch(e){ return []; } },
@@ -553,7 +563,8 @@ function vTasks(){
     return '<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')">'
       + '<td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">'+esc(projName(c['Mã DA']))+(c['Ý kiến chỉ đạo']?' · 💬 có chỉ đạo':'')+(parsePhotos(c['Ảnh']).length?' · 📷 '+parsePhotos(c['Ảnh']).length:'')+'</div></td>'
       + '<td>'+esc(c['Phụ trách']||'—')+'</td>'
-      + '<td>'+(c['Hạn hoàn thành'] ? (hanCls?'<span class="tag '+hanCls+'">':'')+esc(c['Hạn hoàn thành'])+(hanCls?'</span>':'') : '—')+'</td>'
+      + '<td class="muted">'+esc(c['Ngày bắt đầu']||'—')+'</td>'
+      + '<td>'+(c['Hạn hoàn thành'] ? (hanCls?'<span class="tag '+hanCls+'">':'')+esc(c['Hạn hoàn thành'])+(hanCls?'</span>':'') : '—')+(c['Ngày hoàn thành']?'<div class="muted" style="font-size:11px">✓ Xong: '+esc(c['Ngày hoàn thành'])+'</div>':'')+'</td>'
       + '<td>'+tagUT(c['Ưu tiên'])+'</td>'
       + '<td><div class="bar" style="width:74px"><i style="width:'+(Number(c['Tiến độ (%)'])||0)+'%"></i></div></td>'
       + '<td>'+tagTT(c['Trạng thái'])+'</td></tr>';
@@ -567,7 +578,7 @@ function vTasks(){
       const done = grp.items.filter(x=>x['Trạng thái']==='Hoàn thành').length;
       const gi = GIAI_DOAN.indexOf(grp.g);
       html += '<div class="phase-head"><span>'+(gi>-1 ? 'GĐ'+(gi+1)+' · ' : '')+esc(grp.g)+'</span><span class="cnt">'+done+'/'+grp.items.length+' hoàn thành</span></div>'
-        + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Công việc</th><th>Phụ trách</th><th>Hạn</th><th>Ưu tiên</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead><tbody>'
+        + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Công việc</th><th>Phụ trách</th><th>Bắt đầu</th><th>Hạn</th><th>Ưu tiên</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead><tbody>'
         + grp.items.map(row).join('') + '</tbody></table></div>';
     });
   } else html += '<div class="empty"><b>Chưa có công việc</b>Bấm "+ Thêm mới" để giao việc — việc thuộc giai đoạn nào sẽ tự xếp vào nhóm giai đoạn đó</div>';
@@ -893,7 +904,9 @@ function formTask(code){
     + '<div class="grid2">'
     + fld('Giai đoạn', sel('tGD', GIAI_DOAN, c?.['Giai đoạn']||GIAI_DOAN[1]))
     + fld('Phụ trách', selStaff('tPT', c?.['Phụ trách']||user['Họ tên']))
+    + fld('Ngày bắt đầu', inp('tBD', c?.['Ngày bắt đầu'],'date'))
     + fld('Hạn hoàn thành', inp('tHan', c?.['Hạn hoàn thành'],'date'))
+    + fld('Ngày hoàn thành thực tế', inp('tHT', c?.['Ngày hoàn thành'],'date'))
     + fld('Ưu tiên', sel('tUT', UU_TIEN, c?.['Ưu tiên']||'Trung bình'))
     + fld('Trạng thái', sel('tTT', TT_CV, c?.['Trạng thái']||'Chưa bắt đầu'))
     + fld('Tiến độ (%)', inp('tTD', c?.['Tiến độ (%)']||0,'number'))
@@ -910,8 +923,12 @@ function formTask(code){
       if(tt==='Hoàn thành') td = 100; else if(td===100) tt='Hoàn thành';
       const nguoiDuyet = V('tNguoiDuyet');
       if(tt==='Chờ duyệt' && !nguoiDuyet) return toast('Phải chọn người phê duyệt khi trình duyệt', true);
+      let ngayHT = V('tHT');
+      if(tt==='Hoàn thành' && !ngayHT) ngayHT = today(); // tự điền ngày hoàn thành khi đóng việc
+      if(tt!=='Hoàn thành') ngayHT = V('tHT'); // giữ nếu user tự nhập, không ép xóa
       const rec = {'Mã CV': code||'','Mã DA':V('tDA'),'Tên công việc':V('tTen'),'Giai đoạn':V('tGD'),
-        'Phụ trách':V('tPT'),'Hạn hoàn thành':V('tHan'),'Ưu tiên':V('tUT'),'Trạng thái':tt,'Tiến độ (%)':td,'Ghi chú':V('tGC')};
+        'Phụ trách':V('tPT'),'Ngày bắt đầu':V('tBD'),'Hạn hoàn thành':V('tHan'),'Ngày hoàn thành':ngayHT,
+        'Ưu tiên':V('tUT'),'Trạng thái':tt,'Tiến độ (%)':td,'Ghi chú':V('tGC')};
       rec['Người duyệt được giao'] = nguoiDuyet;
       rec['Ảnh'] = JSON.stringify(window.__photos || []);
       const ykT = document.getElementById('tYK');
