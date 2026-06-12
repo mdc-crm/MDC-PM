@@ -251,9 +251,46 @@ const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbxM4zH__z_qF5NxFxlv
 
 const GIAI_DOAN = ['Tiếp nhận & Báo giá','Thiết kế concept','Thiết kế kỹ thuật','Sản xuất tại xưởng','Thi công lắp đặt','Nghiệm thu','Bàn giao & Bảo hành'];
 const TT_DUAN   = ['Đang triển khai','Tạm dừng','Hoàn thành','Hủy'];
-const TT_CV     = ['Chưa bắt đầu','Đang làm','Chờ duyệt','Hoàn thành','Tạm dừng'];
+const TT_CV     = ['Chưa bắt đầu','Đang làm','Chờ duyệt','Đã phê duyệt','Từ chối','Hoàn thành','Tạm dừng'];
 const UU_TIEN   = ['Cao','Trung bình','Thấp'];
 const LOAI_HINH = ['Thiết kế','Thi công','Thiết kế & Thi công'];
+// Bộ việc mẫu để xem trước trong form chuyển lead — [tên, giai đoạn, nhóm TK/TC]
+// PHẢI khớp với SEED_TASKS ở apps_script.gs
+const SEED_PREVIEW = [
+  ['Khảo sát hiện trạng & đo đạc công trình','Tiếp nhận & Báo giá','TK'],
+  ['Trình BLĐ phê duyệt concept & xin ý kiến chỉ đạo','Thiết kế concept','TK'],
+  ['Concept & moodboard trình khách','Thiết kế concept','TK'],
+  ['Hồ sơ 3D + chốt phương án với khách','Thiết kế concept','TK'],
+  ['Shop drawing & bóc tách BOQ','Thiết kế kỹ thuật','TK'],
+  ['Trình BLĐ phê duyệt hồ sơ kỹ thuật & BOQ','Thiết kế kỹ thuật','TK'],
+  ['Đặt vật tư & phát lệnh sản xuất xưởng','Sản xuất tại xưởng','TC'],
+  ['Trình BLĐ phê duyệt vật tư & chi phí sản xuất','Sản xuất tại xưởng','TC'],
+  ['Sản xuất + QC tại xưởng','Sản xuất tại xưởng','TC'],
+  ['Thi công lắp đặt tại công trình','Thi công lắp đặt','TC'],
+  ['Nghiệm thu nội bộ & lập punch list','Nghiệm thu','TC'],
+  ['Trình BLĐ phê duyệt kết quả nghiệm thu','Nghiệm thu','TC'],
+  ['Nghiệm thu với khách & bàn giao, kích hoạt BH','Bàn giao & Bảo hành','TC']
+];
+// Lọc việc mẫu theo loại hình + render HTML xem trước
+function seedPreviewHtml(loai){
+  const n = (loai||'').toLowerCase();
+  const onlyTK = n === 'thiết kế'.toLowerCase();
+  const onlyTC = n === 'thi công'.toLowerCase();
+  const list = SEED_PREVIEW.filter(t => !(onlyTK && t[2]==='TC') && !(onlyTC && t[2]==='TK'));
+  // Nhóm theo giai đoạn giữ thứ tự
+  const stages = [];
+  list.forEach(t => { if(!stages.includes(t[1])) stages.push(t[1]); });
+  let html = '<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.7">';
+  html += '<b style="color:var(--brass-deep)">'+list.length+' đầu việc</b> sẽ được tạo theo '+stages.length+' giai đoạn:';
+  stages.forEach(s => {
+    const items = list.filter(t => t[1]===s);
+    html += '<div style="margin-top:6px"><b>'+esc(s)+'</b><ul style="margin:2px 0 0 16px;padding:0">';
+    items.forEach(t => { html += '<li>'+esc(t[0])+'</li>'; });
+    html += '</ul></div>';
+  });
+  html += '</div>';
+  return html;
+}
 const LOAI_CP   = ['Vật tư','Nhân công','Vận chuyển','Thầu phụ','Chi phí khác'];
 const VAI_TRO   = {admin:'Quản trị viên',quanly:'Quản lý dự án',nhanvien:'Nhân viên'};
 const CAP_DUYET = ['Quản lý','Giám đốc','Tổng giám đốc']; // thứ tự thẩm quyền tăng dần
@@ -423,7 +460,7 @@ function toast(msg, isErr){
   setTimeout(()=>t.remove(), 3200);
 }
 function tagTT(v){
-  const map = {'Hoàn thành':'t-ok','Đang làm':'t-info','Đang triển khai':'t-info','Chờ duyệt':'t-warn','Tạm dừng':'t-pause','Chưa bắt đầu':'t-pause','Hủy':'t-bad','Nghỉ việc':'t-bad','Đang làm việc':'t-ok','Đã duyệt':'t-ok','Từ chối':'t-bad'};
+  const map = {'Hoàn thành':'t-ok','Đã phê duyệt':'t-ok','Đang làm':'t-info','Đang triển khai':'t-info','Chờ duyệt':'t-warn','Tạm dừng':'t-pause','Chưa bắt đầu':'t-pause','Hủy':'t-bad','Nghỉ việc':'t-bad','Từ chối':'t-bad','Đang làm việc':'t-ok','Đã duyệt':'t-ok'};
   return '<span class="tag ' + (map[v]||'t-brass') + '">' + esc(v||'—') + '</span>';
 }
 function tagUT(v){ return '<span class="tag ' + (v==='Cao'?'t-bad':v==='Thấp'?'t-pause':'t-warn') + '">' + esc(v||'—') + '</span>'; }
@@ -703,14 +740,30 @@ function leadSection(){
 function parsePhotos(s){ try{ const a = JSON.parse(s||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function photoSection(c){
   window.__photos = parsePhotos(c ? c['Ảnh'] : '[]');
-  return '<div class="section-label">Ảnh đính kèm (hiện trường, chứng từ…)</div>'
+  return '<div class="section-label">Ảnh & chứng từ đính kèm</div>'
     + '<div id="photoGrid" class="photo-grid">' + photoThumbs() + '</div>'
-    + '<label class="btn btn-ghost" style="width:100%;margin-bottom:6px;cursor:pointer">📷 Chụp / chọn ảnh từ thiết bị<input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(this)"></label>'
+    + '<div style="display:flex;gap:8px;margin-bottom:6px">'
+    + '<label class="btn btn-ghost" style="flex:1;cursor:pointer">📷 Ảnh<input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(this)"></label>'
+    + '<label class="btn btn-ghost" style="flex:1;cursor:pointer">📎 File / chứng từ<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf" multiple style="display:none" onchange="addFiles(this)"></label>'
+    + '</div>'
     + '<div class="muted" id="photoStatus" style="margin-bottom:10px"></div>';
 }
 function photoThumbs(){
   return (window.__photos||[]).map(function(p,i){
-    return '<div class="photo-thumb"><img src="https://drive.google.com/thumbnail?id='+esc(p)+'&sz=w400" loading="lazy" alt="Ảnh '+(i+1)+'" onclick="window.open(\'https://drive.google.com/file/d/'+esc(p)+'/view\',\'_blank\')">' 
+    // p có thể là string (ID ảnh) hoặc object {id,name,doc:true} cho file tài liệu
+    const isDoc = p && typeof p === 'object' && p.doc;
+    const id = isDoc ? p.id : p;
+    const url = 'https://drive.google.com/file/d/'+esc(id)+'/view';
+    if(isDoc){
+      const nm = p.name || 'Tài liệu';
+      const ext = (nm.split('.').pop()||'').toUpperCase();
+      const icon = /PDF/.test(ext)?'📄':/(DOC|DOCX)/.test(ext)?'📝':/(XLS|XLSX|CSV)/.test(ext)?'📊':'📎';
+      return '<div class="photo-thumb doc-thumb" onclick="window.open(\''+url+'\',\'_blank\')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--paper);cursor:pointer;padding:6px;text-align:center">'
+        + '<div style="font-size:26px">'+icon+'</div>'
+        + '<div style="font-size:9.5px;color:var(--ink-soft);word-break:break-all;line-height:1.2;max-height:24px;overflow:hidden">'+esc(nm)+'</div>'
+        + '<button type="button" title="Gỡ file" onclick="event.stopPropagation();removePhoto('+i+')">✕</button></div>';
+    }
+    return '<div class="photo-thumb"><img src="https://drive.google.com/thumbnail?id='+esc(id)+'&sz=w400" loading="lazy" alt="Ảnh '+(i+1)+'" onclick="window.open(\''+url+'\',\'_blank\')">' 
       + '<button type="button" title="Gỡ ảnh" onclick="removePhoto('+i+')">✕</button></div>';
   }).join('');
 }
@@ -731,6 +784,37 @@ async function addPhotos(input){
     }catch(e){ toast('Tải ảnh thất bại (cần có mạng): ' + e.message, true); break; }
   }
   if(st) st.textContent = '';
+}
+
+// Tải file chứng từ (PDF/Word/Excel…) — KHÔNG nén, gửi nguyên bản
+async function addFiles(input){
+  const files = Array.prototype.slice.call(input.files||[]); input.value = '';
+  if(!files.length) return;
+  if(!store.api) return toast('Chưa cấu hình kết nối — không tải file được', true);
+  const st = document.getElementById('photoStatus');
+  for(let i=0; i<files.length; i++){
+    const f = files[i];
+    if(f.size > 8*1024*1024){ toast('File "'+f.name+'" quá lớn (>8MB), bỏ qua', true); continue; }
+    if(st) st.textContent = 'Đang tải file ' + (i+1) + '/' + files.length + '… (' + f.name + ')';
+    try{
+      const b64 = await fileToBase64(f);
+      const j = await apiPost('uploadImage', { name: f.name, mimeType: f.type || 'application/octet-stream', data: b64 });
+      if(!j.ok) throw new Error(j.error || 'Server từ chối');
+      window.__photos.push({ id: j.id, name: f.name, doc: true });
+      const g = document.getElementById('photoGrid'); if(g) g.innerHTML = photoThumbs();
+    }catch(e){ toast('Tải file thất bại (cần có mạng): ' + e.message, true); break; }
+  }
+  if(st) st.textContent = '';
+}
+
+// Đọc file bất kỳ → base64 (bỏ tiền tố data:...;base64,)
+function fileToBase64(file){
+  return new Promise(function(res, rej){
+    const r = new FileReader();
+    r.onload = function(){ res(String(r.result).split(',')[1]); };
+    r.onerror = function(){ rej(new Error('Không đọc được file')); };
+    r.readAsDataURL(file);
+  });
 }
 function compressImage(file, maxDim, quality){
   maxDim = maxDim || 1600; quality = quality || 0.82;
@@ -755,21 +839,37 @@ function taskApproveHtml(c, isNew){
   const assignee = c['Người duyệt được giao'] || '';
   const isMine = assignee && user['Họ tên'] === assignee;
   const yk = c['Ý kiến chỉ đạo'] || '';
-  const daDuyet = c['Người duyệt'] ? '<p class="muted" style="margin:4px 0 8px">Duyệt gần nhất: ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</p>' : '';
+  const tt = c['Trạng thái'] || '';
   const ai = assignee ? '<p class="muted" style="margin-bottom:8px">Người được giao duyệt: <b>'+esc(assignee)+'</b></p>' : '';
-  if(isMine){
-    return '<div class="section-label">Phê duyệt & chỉ đạo từ cấp trên</div>'
-      + fld('Ý kiến chỉ đạo', '<textarea id="tYK" rows="2" placeholder="Nhập chỉ đạo, yêu cầu chỉnh sửa cho người thực hiện…">' + esc(yk) + '</textarea>')
-      + (c['Trạng thái'] === 'Chờ duyệt'
-        ? '<div style="display:flex;gap:8px;margin-bottom:8px"><button type="button" class="btn btn-brass" style="flex:1" onclick="window.__tApprove=\'ok\';document.getElementById(\'modalSave\').click()">✓ Phê duyệt</button>'
-          + '<button type="button" class="btn btn-ghost" style="flex:1" onclick="window.__tApprove=\'redo\';document.getElementById(\'modalSave\').click()">↩ Yêu cầu làm lại</button></div>'
-        : '<p class="muted" style="margin-bottom:8px">Nút duyệt hiện khi công việc ở trạng thái "Chờ duyệt".</p>')
-      + daDuyet;
+  // Khối hiển thị KẾT QUẢ phê duyệt (trạng thái + ý kiến chỉ đạo) — luôn hiện khi đã duyệt/từ chối
+  let ketqua = '';
+  if(tt === 'Đã phê duyệt' || tt === 'Từ chối'){
+    const icon = tt === 'Đã phê duyệt' ? '✓' : '✕';
+    ketqua = '<div class="section-label">Kết quả phê duyệt</div>'
+      + '<div class="approve-box"><b>' + icon + ' ' + esc(tt) + '</b>'
+      + (c['Người duyệt'] ? ' — ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') : '')
+      + (yk ? '<br><span style="color:var(--ink)">💬 Ý kiến chỉ đạo: ' + esc(yk) + '</span>' : '') + '</div>';
   }
-  let html = ai;
-  if(yk) html += '<div class="approve-box">' + esc(yk) + (c['Người duyệt'] ? '<br><span class="muted">— ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</span>' : '') + '</div>';
-  if(c['Trạng thái']==='Chờ duyệt' && assignee && !isMine) html += '<p class="muted" style="margin-bottom:8px">⏳ Đang chờ <b>'+esc(assignee)+'</b> phê duyệt.</p>';
-  else html += '<p class="muted" style="margin-bottom:8px">💡 Làm xong cần duyệt? Chọn người phê duyệt, chuyển Trạng thái "Chờ duyệt" rồi Lưu.</p>';
+  if(isMine){
+    let html = '<div class="section-label">Phê duyệt & chỉ đạo từ cấp trên</div>' + ketqua
+      + fld('Ý kiến chỉ đạo', '<textarea id="tYK" rows="2" placeholder="Nhập chỉ đạo, yêu cầu chỉnh sửa cho người thực hiện…">' + esc(yk) + '</textarea>');
+    if(tt === 'Chờ duyệt'){
+      html += '<div style="display:flex;gap:8px;margin-bottom:8px">'
+        + '<button type="button" class="btn btn-brass" style="flex:1" onclick="window.__tApprove=\'ok\';document.getElementById(\'modalSave\').click()">✓ Phê duyệt</button>'
+        + '<button type="button" class="btn btn-ghost" style="flex:1" onclick="window.__tApprove=\'redo\';document.getElementById(\'modalSave\').click()">↩ Trả lại</button>'
+        + '<button type="button" class="btn btn-danger" style="flex:1" onclick="window.__tApprove=\'no\';document.getElementById(\'modalSave\').click()">✕ Từ chối</button></div>';
+    } else if(tt === 'Đã phê duyệt' || tt === 'Từ chối'){
+      html += '<p class="muted" style="margin-bottom:8px">Có thể cập nhật lại ý kiến chỉ đạo rồi Lưu. Đổi Trạng thái về "Chờ duyệt" nếu cần duyệt lại.</p>';
+    } else {
+      html += '<p class="muted" style="margin-bottom:8px">Nút duyệt hiện khi công việc ở trạng thái "Chờ duyệt".</p>';
+    }
+    return html;
+  }
+  // Người KHÔNG phải người duyệt — chỉ xem
+  let html = ai + ketqua;
+  if(yk && tt !== 'Đã phê duyệt' && tt !== 'Từ chối') html += '<div class="approve-box">💬 ' + esc(yk) + (c['Người duyệt'] ? '<br><span class="muted">— ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</span>' : '') + '</div>';
+  if(tt === 'Chờ duyệt' && assignee) html += '<p class="muted" style="margin-bottom:8px">⏳ Đang chờ <b>'+esc(assignee)+'</b> phê duyệt.</p>';
+  else if(tt !== 'Đã phê duyệt' && tt !== 'Từ chối') html += '<p class="muted" style="margin-bottom:8px">💡 Làm xong cần duyệt? Chọn người phê duyệt, chuyển Trạng thái "Chờ duyệt" rồi Lưu.</p>';
   return html;
 }
 function expenseApproveHtml(c, isNew){
@@ -779,17 +879,28 @@ function expenseApproveHtml(c, isNew){
   const isMine = assignee && user['Họ tên'] === assignee;
   const tt = c['Trạng thái duyệt'] || 'Chờ duyệt';
   const yk = c['Ý kiến chỉ đạo'] || '';
-  const daDuyet = c['Người duyệt'] ? '<p class="muted" style="margin:4px 0 8px">Duyệt gần nhất: ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</p>' : '';
-  let html = '<div class="section-label">Phê duyệt chi phí — hiện tại: ' + esc(tt) + '</div>';
+  // Khối kết quả phê duyệt — luôn hiện khi đã duyệt/từ chối
+  let ketqua = '';
+  if(tt === 'Đã duyệt' || tt === 'Từ chối'){
+    const icon = tt === 'Đã duyệt' ? '✓' : '✕';
+    ketqua = '<div class="approve-box"><b>' + icon + ' ' + esc(tt) + '</b>'
+      + (c['Người duyệt'] ? ' — ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') : '')
+      + (yk ? '<br><span style="color:var(--ink)">💬 Ý kiến chỉ đạo: ' + esc(yk) + '</span>' : '') + '</div>';
+  }
+  let html = '<div class="section-label">Phê duyệt chi phí — hiện tại: ' + esc(tt) + '</div>' + ketqua;
   if(assignee) html += '<p class="muted" style="margin-bottom:8px">Người được giao duyệt: <b>'+esc(assignee)+'</b></p>';
-  if(isMine && tt!=='Đã duyệt'){
+  if(isMine){
     html += fld('Ý kiến chỉ đạo', '<textarea id="eYK" rows="2" placeholder="Lý do duyệt/từ chối, yêu cầu bổ sung chứng từ…">' + esc(yk) + '</textarea>')
       + '<div style="display:flex;gap:8px;margin-bottom:8px"><button type="button" class="btn btn-brass" style="flex:1" onclick="window.__eApprove=\'ok\';document.getElementById(\'modalSave\').click()">✓ Phê duyệt</button>'
-      + '<button type="button" class="btn btn-danger" style="flex:1" onclick="window.__eApprove=\'no\';document.getElementById(\'modalSave\').click()">✕ Từ chối</button></div>' + daDuyet;
-  } else if(yk){
-    html += '<div class="approve-box">' + esc(yk) + (c['Người duyệt'] ? '<br><span class="muted">— ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</span>' : '') + '</div>';
+      + '<button type="button" class="btn btn-danger" style="flex:1" onclick="window.__eApprove=\'no\';document.getElementById(\'modalSave\').click()">✕ Từ chối</button></div>';
+  } else if(yk && tt !== 'Đã duyệt' && tt !== 'Từ chối'){
+    html += '<div class="approve-box">💬 ' + esc(yk) + (c['Người duyệt'] ? '<br><span class="muted">— ' + esc(c['Người duyệt']) + ' · ' + esc(c['Ngày duyệt']||'') + '</span>' : '') + '</div>';
   }
   return html;
+}
+function __updateSeedPreview(){
+  const lh = document.getElementById('cvLH'); const box = document.getElementById('cvSeedPreview');
+  if(lh && box) box.innerHTML = seedPreviewHtml(lh.value);
 }
 function formConvertLead(code){
   const l = (S.leads||[]).find(x => x.code === code);
@@ -804,16 +915,18 @@ function formConvertLead(code){
     + '</div>'
     + fld('Địa chỉ công trình', inp('cvDC', l.diachi))
     + '<div class="grid2">'
-    + fld('Loại hình', sel('cvLH', LOAI_HINH, leadGuessLoai(l)))
+    + fld('Loại hình <span class="muted">(quyết định bộ việc mẫu)</span>', sel('cvLH', LOAI_HINH, leadGuessLoai(l)).replace('<select id="cvLH"', '<select id="cvLH" onchange="__updateSeedPreview()"'))
     + fld('Giá trị HĐ (đ)', inp('cvHD', Number(l.giatri) || '', 'number'))
     + fld('Ngân sách chi phí (đ)', inp('cvNS', '', 'number'))
     + fld('Ngày bắt đầu', inp('cvBD', today(), 'date'))
     + fld('Phụ trách triển khai', selStaff('cvPT', ''))
     + fld('Ngày kết thúc dự kiến', inp('cvKT', '', 'date'))
     + '</div>'
-    + '<label style="display:flex;gap:9px;align-items:flex-start;padding:11px 12px;background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:var(--r-sm);cursor:pointer;font-size:13px">'
+    + '<label style="display:flex;gap:9px;align-items:flex-start;padding:11px 12px;background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:var(--r-sm) var(--r-sm) 0 0;cursor:pointer;font-size:13px">'
     + '<input type="checkbox" id="cvSeed" checked style="margin-top:2px;accent-color:var(--brass-deep)">'
-    + '<span><b>Tạo sẵn bộ công việc mẫu theo giai đoạn</b><br><span class="muted">9 đầu việc từ Khảo sát → Bàn giao (tự rút gọn nếu chỉ Thiết kế hoặc chỉ Thi công), hạn tính từ ngày bắt đầu</span></span></label>',
+    + '<span><b>Tạo sẵn bộ công việc mẫu theo giai đoạn</b><br><span class="muted">Hạn mỗi việc tính tự động từ ngày bắt đầu. Danh sách bên dưới thay đổi theo Loại hình đã chọn:</span></span></label>'
+    + '<div id="cvSeedPreview" style="border:1px solid var(--brass-soft);border-top:none;border-radius:0 0 var(--r-sm) var(--r-sm);padding:11px 14px;background:#FFFDF8;max-height:240px;overflow-y:auto">'
+    + seedPreviewHtml(leadGuessLoai(l)) + '</div>',
     function save(){
       if(!V('cvTen')) return toast('Chưa nhập tên dự án', true);
       const rec = {
@@ -935,9 +1048,13 @@ function formTask(code){
       if(ykT) rec['Ý kiến chỉ đạo'] = ykT.value.trim();
       if(window.__tApprove){
         rec['Người duyệt'] = user['Họ tên']; rec['Ngày duyệt'] = today();
-        if(window.__tApprove === 'ok'){ rec['Trạng thái'] = 'Hoàn thành'; rec['Tiến độ (%)'] = 100; }
-        else { rec['Trạng thái'] = 'Đang làm'; }
-        toast(window.__tApprove === 'ok' ? '✓ Đã phê duyệt công việc' : '↩ Đã trả lại kèm ý kiến chỉ đạo');
+        if(window.__tApprove === 'ok'){ rec['Trạng thái'] = 'Đã phê duyệt'; }
+        else if(window.__tApprove === 'no'){ rec['Trạng thái'] = 'Từ chối'; }
+        else { rec['Trạng thái'] = 'Đang làm'; } // redo = trả lại làm tiếp
+        if(!ykT || !ykT.value.trim()){
+          if(window.__tApprove === 'no') return toast('Vui lòng nhập ý kiến chỉ đạo khi từ chối', true);
+        }
+        toast(window.__tApprove === 'ok' ? '✓ Đã phê duyệt công việc' : window.__tApprove === 'no' ? '✕ Đã từ chối kèm ý kiến chỉ đạo' : '↩ Đã trả lại kèm ý kiến chỉ đạo');
         window.__tApprove = null;
       }
       if(isNew){ rec['Mã CV'] = tempCode('CV', S.congviec, 'Mã CV'); S.congviec.push(rec); }
@@ -985,9 +1102,11 @@ function formExpense(code){
         else { rec['Trạng thái duyệt'] = 'Đã duyệt'; rec['Người duyệt'] = user['Họ tên']; rec['Ngày duyệt'] = today(); }
       } else rec['Trạng thái duyệt'] = c['Trạng thái duyệt'] || 'Chờ duyệt';
       if(window.__eApprove){
+        const ykEval = document.getElementById('eYK');
+        if(window.__eApprove === 'no' && (!ykEval || !ykEval.value.trim())){ return toast('Vui lòng nhập ý kiến chỉ đạo khi từ chối', true); }
         rec['Người duyệt'] = user['Họ tên']; rec['Ngày duyệt'] = today();
         rec['Trạng thái duyệt'] = window.__eApprove === 'ok' ? 'Đã duyệt' : 'Từ chối';
-        toast(window.__eApprove === 'ok' ? '✓ Đã duyệt khoản chi' : '✕ Đã từ chối khoản chi');
+        toast(window.__eApprove === 'ok' ? '✓ Đã duyệt khoản chi' : '✕ Đã từ chối kèm ý kiến chỉ đạo');
         window.__eApprove = null;
       }
       if(isNew){ rec['Mã CP'] = tempCode('CP', S.chiphi, 'Mã CP'); S.chiphi.push(rec); }
