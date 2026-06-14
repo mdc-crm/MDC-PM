@@ -331,7 +331,7 @@ function seedPreviewHtml(loai){
   return html;
 }
 const LOAI_CP   = ['Vật tư','Nhân công','Vận chuyển','Thầu phụ','Chi phí khác'];
-const VAI_TRO   = {admin:'Quản trị viên',quanly:'Quản lý dự án',nhanvien:'Nhân viên'};
+const VAI_TRO   = {nhanvien:'Nhân viên',quanly:'Quản lý',truongphong:'Trưởng phòng',giamdoc:'Giám đốc',tonggiamdoc:'Tổng giám đốc'};
 const CAP_DUYET = ['Quản lý','Giám đốc','Tổng giám đốc']; // thứ tự thẩm quyền tăng dần
 // ★ Nhóm 3 — Hằng số cho nhà thầu phụ & lịch hẹn
 const LOAI_THAU = ['Điện','Nước','Sơn','Kính','Rèm cửa','Điều hòa','Thạch cao','Đá','Sàn gỗ','Vận chuyển','Khác'];
@@ -522,8 +522,10 @@ async function doLogin(){
     try{ const j = await apiGet('getAll'); if(j.ok){ Object.assign(S,{duan:j.duan,congviec:j.congviec,chiphi:j.chiphi,nhansu:j.nhansu,nhatky:j.nhatky,leads:(j.leads&&j.leads.items)||[],thaubo:j.thaubo||[],lichhen:j.lichhen||[]}); store.saveState(); } }
     catch(e){ err.textContent = 'Không kết nối được máy chủ: ' + e.message; return; }
   }
+  const uPhone = u.replace(/[^0-9]/g,'');
   const found = S.nhansu.find(n =>
-    (String(n['Email']||'').toLowerCase() === u || String(n['SĐT']||'') === u) &&
+    ((String(n['Email']||'').toLowerCase().trim() === u) ||
+     (uPhone && String(n['SĐT']||'').replace(/[^0-9]/g,'') === uPhone)) &&
     String(n['Mật khẩu']||'') === p &&
     String(n['Trạng thái']||'') !== 'Nghỉ việc'
   );
@@ -542,11 +544,18 @@ function enterApp(){
   buildNav(); go('dashboard'); syncAll(false);
 }
 function can(action){
-  const r = user ? user['Vai trò'] : '';
+  const r = user ? capBacRank_(user['Vai trò']) : '';
   if(r === 'admin') return true;
   if(r === 'quanly') return action !== 'staff' && action !== 'deleteAny';
   if(r === 'nhanvien') return ['addExpense','editTask'].includes(action);
   return false;
+}
+// Quy đổi 5 cấp bậc → 3 mức quyền nội bộ của PM
+function capBacRank_(vaiTro){
+  const v = String(vaiTro||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').trim();
+  if(v==='tonggiamdoc'||v==='giamdoc'||v.indexOf('giam doc')>-1||v==='admin'||v==='super_admin') return 'admin';
+  if(v==='truongphong'||v==='quanly'||v.indexOf('truong phong')>-1||v.indexOf('quan ly')>-1||v==='manager'||v==='pm') return 'quanly';
+  return 'nhanvien';
 }
 
 /* ★ Nhóm 3 — PHÂN QUYỀN THEO DỰ ÁN
