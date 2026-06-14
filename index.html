@@ -172,6 +172,45 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
 .photo-thumb button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(36,27,20,.75);color:#fff;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
 .approve-box{background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+
+/* ★ Nhóm 3 — Gantt chart */
+.gantt-wrap{overflow-x:auto;background:var(--card);border-radius:var(--r);padding:0}
+.gantt{display:grid;font-size:12px;min-width:600px}
+.gantt-row{display:contents}
+.gantt-row > div{padding:8px 10px;border-bottom:1px solid var(--line);background:var(--card)}
+.gantt-row.head > div{background:#FBF8F1;font-weight:700;color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--line-strong);position:sticky;top:0;z-index:2}
+.gantt-row.phase > div{background:#FBF4E6;font-weight:700;color:var(--brass-deep);border-left:3px solid var(--brass)}
+.gantt-name{position:sticky;left:0;z-index:1;background:var(--card);box-shadow:1px 0 0 var(--line)}
+.gantt-row.head .gantt-name,.gantt-row.phase .gantt-name{z-index:3}
+.gantt-bar-cell{position:relative;height:32px;padding:0!important;background:repeating-linear-gradient(90deg,transparent 0,transparent 23px,#F5EFE3 23px,#F5EFE3 24px)!important}
+.gantt-bar{position:absolute;top:6px;height:20px;border-radius:6px;background:linear-gradient(90deg,var(--brass),var(--brass-deep));color:#fff;font-size:10.5px;display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15);cursor:pointer}
+.gantt-bar.done{background:linear-gradient(90deg,#7CB342,#558B2F)}
+.gantt-bar.late{background:linear-gradient(90deg,#E53935,#B71C1C)}
+.gantt-bar.pause{background:linear-gradient(90deg,#999,#666)}
+.gantt-bar:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:#E53935;z-index:1;pointer-events:none}
+.gantt-legend{display:flex;gap:14px;padding:10px 14px;font-size:11.5px;color:var(--ink-soft);flex-wrap:wrap;border-top:1px solid var(--line)}
+.gantt-legend span{display:inline-flex;align-items:center;gap:5px}
+.gantt-legend i{display:inline-block;width:14px;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--brass),var(--brass-deep))}
+.gantt-legend i.done{background:#558B2F} .gantt-legend i.late{background:#B71C1C} .gantt-legend i.pause{background:#666}
+
+/* ★ Nhóm 3 — Calendar Lịch hẹn */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden}
+.cal-head{background:#FBF8F1;padding:7px;text-align:center;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px}
+.cal-day{background:var(--card);padding:6px;min-height:78px;font-size:11px;position:relative}
+.cal-day.off{background:#FAFAF7;color:var(--ink-faint)}
+.cal-day.today{background:#FFF9EB;box-shadow:inset 0 0 0 2px var(--brass)}
+.cal-day .d{font-weight:700;font-size:12px;color:var(--ink);display:block;margin-bottom:3px}
+.cal-day .ev{display:block;background:var(--brass-soft);color:var(--brass-deep);padding:1px 5px;border-radius:4px;margin:1px 0;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:600}
+.cal-day .ev:hover{background:var(--brass);color:#fff}
+.cal-day .ev.done{background:var(--ok-bg);color:var(--ok)}
+.cal-day .ev.cancel{background:var(--bad-bg);color:var(--bad);text-decoration:line-through}
+@media(max-width:520px){.cal-day{min-height:54px;padding:4px}.cal-day .ev{font-size:9.5px}.cal-day .d{font-size:11px}}
+
+/* ★ Nhóm 3 — Thầu phụ card */
+.sub-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .12s}
+.sub-card:hover{background:#FBF9F5;border-color:var(--brass-soft)}
+.rating{color:var(--brass-deep);font-size:13px;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -294,6 +333,11 @@ function seedPreviewHtml(loai){
 const LOAI_CP   = ['Vật tư','Nhân công','Vận chuyển','Thầu phụ','Chi phí khác'];
 const VAI_TRO   = {admin:'Quản trị viên',quanly:'Quản lý dự án',nhanvien:'Nhân viên'};
 const CAP_DUYET = ['Quản lý','Giám đốc','Tổng giám đốc']; // thứ tự thẩm quyền tăng dần
+// ★ Nhóm 3 — Hằng số cho nhà thầu phụ & lịch hẹn
+const LOAI_THAU = ['Điện','Nước','Sơn','Kính','Rèm cửa','Điều hòa','Thạch cao','Đá','Sàn gỗ','Vận chuyển','Khác'];
+const TT_THAU   = ['Đang hợp tác','Đang xét','Tạm dừng','Ngừng hợp tác'];
+const LOAI_LH   = ['Khảo sát hiện trạng','Trình concept','Trình 3D','Trình BOQ / báo giá','Ký hợp đồng','Họp tiến độ','Nghiệm thu','Bàn giao','Bảo hành','Khác'];
+const TT_LH     = ['Đã lên lịch','Đã xác nhận','Đã hoàn thành','Hoãn','Hủy'];
 // Danh sách người có quyền duyệt (có Cấp duyệt khác trống, đang làm việc)
 function approvers(){ return S.nhansu.filter(n => (n['Cấp duyệt']||'').trim() && n['Trạng thái']!=='Nghỉ việc'); }
 // Người đang đăng nhập có quyền duyệt không
@@ -312,7 +356,7 @@ function selApprover(id, val){
   return '<select id="'+id+'">'+opts+'</select>';
 }
 
-let S = {duan:[],congviec:[],chiphi:[],nhansu:[],nhatky:[],leads:[]};
+let S = {duan:[],congviec:[],chiphi:[],nhansu:[],nhatky:[],leads:[],thaubo:[],lichhen:[]};
 let user = null, currentView = 'dashboard', filterProj = '';
 
 /* ---------- Lưu trữ cục bộ ---------- */
@@ -370,8 +414,32 @@ async function flushPending(){
     const res = await fetch(url, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({action:'batch', ops, user: user ? user['Họ tên'] : ''})});
     const j = await res.json();
-    if(j.ok){ store.pending = []; toast('Đã gửi ' + ops.length + ' thao tác chờ lên Sheets'); }
-  }catch(e){ /* giữ hàng đợi, thử lại lần sau */ }
+    if(j.ok && j.results){
+      // Lọc bỏ các op có lỗi logic vĩnh viễn (action không tồn tại, sai cấu trúc…)
+      // Giữ lại op chỉ fail vì lý do tạm thời
+      const keep = [];
+      const permanentErrors = [];
+      j.results.forEach((r, i) => {
+        if(r.ok) return; // OK rồi → bỏ khỏi pending
+        const e = String(r.error||'').toLowerCase();
+        // Lỗi logic vĩnh viễn — bỏ luôn để không retry mãi
+        if(e.includes('không hợp lệ') || e.includes('thiếu') || e.includes('không tìm thấy')) {
+          permanentErrors.push(ops[i].action + ': ' + r.error);
+        } else {
+          keep.push(ops[i]);
+        }
+      });
+      store.pending = keep;
+      const cleared = ops.length - keep.length - permanentErrors.length;
+      if(cleared) toast('Đã gửi ' + cleared + ' thao tác chờ lên Sheets');
+      if(permanentErrors.length) {
+        toast('⚠ ' + permanentErrors.length + ' thao tác bị loại bỏ — cần Deploy lại Apps Script', true);
+        console.warn('Pending ops bị bỏ:', permanentErrors);
+      }
+    } else if(j.ok){
+      store.pending = []; toast('Đã gửi ' + ops.length + ' thao tác chờ lên Sheets');
+    }
+  }catch(e){ /* lỗi mạng → giữ hàng đợi, thử lại lần sau */ }
 }
 async function syncAll(manual){
   if(!store.api){ setSync('off','Chưa kết nối'); if(manual) openApiSetup(); return; }
@@ -383,6 +451,7 @@ async function syncAll(manual){
       S.duan = j.duan||[]; S.congviec = j.congviec||[]; S.chiphi = j.chiphi||[];
       S.nhansu = j.nhansu||[]; S.nhatky = j.nhatky||[];
       S.leads = (j.leads && j.leads.items) ? j.leads.items : [];
+      S.thaubo = j.thaubo||[]; S.lichhen = j.lichhen||[];
       store.saveState();
       setSync('ok','Đồng bộ ' + new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}));
       if(user) render();
@@ -395,16 +464,46 @@ async function syncAll(manual){
 }
 function pushOp(action, data){
   // Cập nhật cục bộ ngay (optimistic), sau đó đẩy lên Sheets
+  // PHÂN BIỆT 2 loại lỗi:
+  //   - Lỗi LOGIC backend (j.ok=false): rollback optimistic, báo lỗi cụ thể, KHÔNG đẩy pending
+  //   - Lỗi MẠNG (catch reject): giữ optimistic, đẩy vào pending, tự retry sau
+  const snapshot = JSON.stringify({duan:S.duan,congviec:S.congviec,chiphi:S.chiphi,nhansu:S.nhansu,thaubo:S.thaubo,lichhen:S.lichhen});
   store.saveState(); render();
+
+  function rollback(msg){
+    try {
+      const snap = JSON.parse(snapshot);
+      S.duan = snap.duan; S.congviec = snap.congviec; S.chiphi = snap.chiphi;
+      S.nhansu = snap.nhansu; S.thaubo = snap.thaubo||[]; S.lichhen = snap.lichhen||[];
+      store.saveState(); render();
+    } catch(e) {}
+    toast('❌ Server từ chối: ' + msg + ' — cần Deploy lại Apps Script', true);
+    setSync('off', 'Lỗi: ' + msg);
+  }
+
   apiPost(action, data).then(j=>{
     if(j.ok){
       if(j.code && data.__newRef){ data.__newRef.code = j.code; }
       setSync('ok','Đã lưu lên Sheets'); syncAll(false);
-    } else throw new Error(j.error||'');
-  }).catch(()=>{
+      return;
+    }
+    // Lỗi logic — kiểm tra có fallback không
+    const errMsg = String(j.error||'').toLowerCase();
+    const isUnknownAction = errMsg.includes('không hợp lệ') || errMsg.includes('khong hop le');
+    // Fallback: nếu seedNewProject không có ở backend cũ → chuyển sang saveProject (không tạo việc mẫu)
+    if(isUnknownAction && action === 'seedNewProject' && data.project){
+      toast('⚠ Backend chưa có seedNewProject — đang lưu dự án (không có việc mẫu)', true);
+      return apiPost('saveProject', data.project).then(j2 => {
+        if(j2.ok){ setSync('ok','Đã lưu dự án (chưa có việc mẫu)'); syncAll(false); }
+        else { rollback(j2.error || 'Fallback saveProject cũng fail'); }
+      }).catch(() => { rollback('Lỗi mạng khi fallback saveProject'); });
+    }
+    rollback(j.error || 'Lỗi không rõ');
+  }).catch(err=>{
+    // Lỗi mạng thật — giữ optimistic, đẩy pending
     const p = store.pending; delete data.__newRef; p.push({action, data}); store.pending = p;
     setSync('pending', p.length + ' thao tác chờ gửi');
-    toast('Mất kết nối — đã lưu tạm, sẽ tự gửi lại', true);
+    toast('📡 Mất kết nối — đã lưu tạm, sẽ tự gửi lại khi có mạng', true);
   });
 }
 
@@ -418,7 +517,7 @@ async function doLogin(){
   // Luôn lấy danh sách nhân sự mới nhất từ Sheets để đăng nhập được trên mọi thiết bị
   if(!S.nhansu.length){
     err.textContent = 'Đang tải dữ liệu nhân sự…';
-    try{ const j = await apiGet('getAll'); if(j.ok){ Object.assign(S,{duan:j.duan,congviec:j.congviec,chiphi:j.chiphi,nhansu:j.nhansu,nhatky:j.nhatky,leads:(j.leads&&j.leads.items)||[]}); store.saveState(); } }
+    try{ const j = await apiGet('getAll'); if(j.ok){ Object.assign(S,{duan:j.duan,congviec:j.congviec,chiphi:j.chiphi,nhansu:j.nhansu,nhatky:j.nhatky,leads:(j.leads&&j.leads.items)||[],thaubo:j.thaubo||[],lichhen:j.lichhen||[]}); store.saveState(); } }
     catch(e){ err.textContent = 'Không kết nối được máy chủ: ' + e.message; return; }
   }
   const found = S.nhansu.find(n =>
@@ -448,6 +547,59 @@ function can(action){
   return false;
 }
 
+/* ★ Nhóm 3 — PHÂN QUYỀN THEO DỰ ÁN
+   - admin/quanly: thấy mọi dự án
+   - nhanvien: chỉ thấy dự án mà Mã NV mình nằm trong cột "Thành viên" (CSV)
+              hoặc dự án mình làm Phụ trách */
+function visibleProjects(){
+  if(!user) return [];
+  const r = user['Vai trò'];
+  if(r === 'admin' || r === 'quanly') return S.duan;
+  const me = user['Họ tên'] || '', myCode = user['Mã NV'] || '';
+  return S.duan.filter(d => {
+    if((d['Phụ trách']||'') === me) return true;
+    const tv = String(d['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
+    return tv.includes(myCode) || tv.includes(me);
+  });
+}
+function visibleProjectCodes(){
+  return new Set(visibleProjects().map(d => d['Mã DA']));
+}
+function visibleTasks(){
+  const codes = visibleProjectCodes();
+  return (user && (user['Vai trò']==='admin' || user['Vai trò']==='quanly'))
+    ? S.congviec
+    : S.congviec.filter(c => codes.has(c['Mã DA']) || (c['Phụ trách']||'') === (user['Họ tên']||''));
+}
+function visibleExpenses(){
+  const codes = visibleProjectCodes();
+  return (user && (user['Vai trò']==='admin' || user['Vai trò']==='quanly'))
+    ? S.chiphi
+    : S.chiphi.filter(c => codes.has(c['Mã DA']) || (c['Người ghi']||'') === (user['Họ tên']||''));
+}
+function visibleAppointments(){
+  if(!user) return [];
+  const codes = visibleProjectCodes();
+  if(user['Vai trò']==='admin' || user['Vai trò']==='quanly') return S.lichhen;
+  const me = user['Họ tên']||'';
+  return S.lichhen.filter(l => codes.has(l['Mã DA']) || String(l['Tham gia (nội bộ)']||'').includes(me));
+}
+
+/* ★ Nhóm 3 — Zalo deep link (mức 1: dùng được ngay, không cần Zalo OA token)
+   - Mobile: zalo://conversation?phone=... mở app Zalo (nếu đã cài)
+   - PC/fallback: zalo.me/{sdt} mở web Zalo */
+function zaloLink(sdt){
+  if(!sdt) return '';
+  const num = String(sdt).replace(/[^0-9+]/g,'');
+  // Chuẩn hóa số VN: 0xxx → 84xxx
+  const clean = num.startsWith('0') ? '84' + num.slice(1) : num.replace(/^\+/,'');
+  return 'https://zalo.me/' + clean;
+}
+function btnZalo(sdt, label){
+  if(!sdt) return '';
+  return '<a class="btn btn-ghost" style="padding:5px 10px;font-size:12px" target="_blank" rel="noopener" href="' + esc(zaloLink(sdt)) + '">💬 ' + (label||'Zalo') + '</a>';
+}
+
 /* ---------- Tiện ích ---------- */
 const fmt = n => (Number(n)||0).toLocaleString('vi-VN');
 const fmtTr = n => { n = Number(n)||0; return n >= 1e9 ? (n/1e9).toFixed(2).replace('.',',')+' tỷ' : n >= 1e6 ? (n/1e6).toFixed(1).replace('.',',')+' tr' : fmt(n)+' đ'; };
@@ -473,7 +625,10 @@ const VIEWS = [
   {id:'dashboard', name:'Tổng quan',  icon:'▦'},
   {id:'duan',      name:'Dự án',      icon:'▤'},
   {id:'congviec',  name:'Công việc',  icon:'✓'},
+  {id:'gantt',     name:'Tiến độ',    icon:'▭'},
   {id:'chiphi',    name:'Chi phí',    icon:'₫'},
+  {id:'lichhen',   name:'Lịch hẹn',   icon:'◷'},
+  {id:'thaubo',    name:'Thầu phụ',   icon:'◈'},
   {id:'nhansu',    name:'Nhân sự',    icon:'◉'},
   {id:'caidat',    name:'Cài đặt',    icon:'⚙'}
 ];
@@ -487,7 +642,7 @@ function go(view){
   document.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === view));
   document.getElementById('viewTitle').textContent = (VIEWS.find(v=>v.id===view)||{}).name || '';
   const btnAdd = document.getElementById('btnAdd');
-  const addable = {duan:can('edit')||user['Vai trò']!=='nhanvien', congviec:true, chiphi:true, nhansu:can('staff')};
+  const addable = {duan:can('edit')||user['Vai trò']!=='nhanvien', congviec:true, chiphi:true, nhansu:can('staff'), thaubo:can('edit'), lichhen:true};
   btnAdd.classList.toggle('hide', !addable[view]);
   render();
   window.scrollTo(0,0);
@@ -497,26 +652,31 @@ function onAddClick(){
   else if(currentView==='congviec') formTask();
   else if(currentView==='chiphi') formExpense();
   else if(currentView==='nhansu') formStaff();
+  else if(currentView==='thaubo') formSubcontractor();
+  else if(currentView==='lichhen') formAppointment();
 }
 function render(){
   const root = document.getElementById('viewRoot');
-  const fn = {dashboard:vDashboard, duan:vProjects, congviec:vTasks, chiphi:vExpenses, nhansu:vStaff, caidat:vSettings}[currentView];
+  const fn = {dashboard:vDashboard, duan:vProjects, congviec:vTasks, gantt:vGantt, chiphi:vExpenses, lichhen:vAppointments, thaubo:vSubcontractors, nhansu:vStaff, caidat:vSettings}[currentView];
   root.innerHTML = fn ? fn() : '';
 }
 
 /* ---------- Trang Tổng quan ---------- */
 function vDashboard(){
-  const active = S.duan.filter(d => d['Trạng thái'] === 'Đang triển khai');
+  const myDuan = visibleProjects();
+  const myCV = visibleTasks();
+  const myCP = visibleExpenses();
+  const active = myDuan.filter(d => d['Trạng thái'] === 'Đang triển khai');
   const tongHD = active.reduce((a,d)=>a+(Number(d['Giá trị HĐ (đ)'])||0),0);
-  const daChi  = S.chiphi.reduce((a,c)=>a+(Number(c['Số tiền (đ)'])||0),0);
-  const quaHan = S.congviec.filter(c => c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0);
-  const sapHan = S.congviec.filter(c => c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])>=0 && daysLeft(c['Hạn hoàn thành'])<=7)
+  const daChi  = myCP.reduce((a,c)=>a+(Number(c['Số tiền (đ)'])||0),0);
+  const quaHan = myCV.filter(c => c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0);
+  const sapHan = myCV.filter(c => c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])>=0 && daysLeft(c['Hạn hoàn thành'])<=7)
                  .sort((a,b)=>(a['Hạn hoàn thành']>b['Hạn hoàn thành']?1:-1)).slice(0,8);
 
   let html = leadBanner() + '<div class="kpis">'
-    + kpi('Dự án đang triển khai', active.length, S.duan.length + ' dự án tổng cộng','accent')
+    + kpi('Dự án đang triển khai', active.length, myDuan.length + ' dự án tổng cộng','accent')
     + kpi('Giá trị HĐ đang chạy', fmtTr(tongHD), 'Tổng hợp đồng dự án đang triển khai')
-    + kpi('Tổng chi phí đã ghi', fmtTr(daChi), S.chiphi.length + ' khoản chi')
+    + kpi('Tổng chi phí đã ghi', fmtTr(daChi), myCP.length + ' khoản chi')
     + kpi('Công việc quá hạn', quaHan.length, quaHan.length ? 'Cần xử lý ngay' : 'Không có việc trễ hạn', quaHan.length?'bad':'')
     + '</div>';
 
@@ -524,10 +684,23 @@ function vDashboard(){
   html += active.length ? active.map(projCard).join('') : '<div class="empty"><b>Chưa có dự án nào</b>Thêm dự án đầu tiên ở mục Dự án</div>';
   html += '</div>';
 
+  // ★ Lịch hẹn sắp tới
+  const upcomingLH = visibleAppointments()
+    .filter(l => l['Ngày'] && l['Trạng thái']!=='Hủy' && l['Trạng thái']!=='Đã hoàn thành' && daysLeft(l['Ngày'])>=0 && daysLeft(l['Ngày'])<=7)
+    .sort((a,b)=> (a['Ngày']||'') > (b['Ngày']||'') ? 1 : -1).slice(0,5);
+  if(upcomingLH.length){
+    html += '<div class="card" style="border-color:var(--brass)"><div class="card-head" style="background:#FBF4E6"><h3>◷ Lịch hẹn 7 ngày tới ('+upcomingLH.length+')</h3><button class="btn btn-ghost" style="padding:6px 12px;font-size:12.5px" onclick="go(\'lichhen\')">Xem lịch →</button></div><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><tbody>';
+    html += upcomingLH.map(l => {
+      const dl = daysLeft(l['Ngày']);
+      return '<tr class="row-click" onclick="formAppointment(\''+l['Mã LH']+'\')"><td><b>'+esc(l['Tiêu đề']||l['Loại lịch hẹn'])+'</b><div class="muted">'+esc(l['Loại lịch hẹn']||'')+' · '+esc(projName(l['Mã DA']))+(l['Khách']?' · KH: '+esc(l['Khách']):'')+'</div></td><td class="num">'+(dl===0?'<span class="tag t-bad">Hôm nay</span>':'<span class="tag t-warn">'+esc(l['Ngày'])+(l['Giờ']?' · '+esc(l['Giờ']):'')+'</span>')+'</td></tr>';
+    }).join('');
+    html += '</tbody></table></div></div></div>';
+  }
+
   if(meCanApprove()){
     const me = user['Họ tên'];
-    const cdCV = S.congviec.filter(c => c['Trạng thái'] === 'Chờ duyệt' && (c['Người duyệt được giao']||'') === me);
-    const cdCP = S.chiphi.filter(c => (c['Trạng thái duyệt']||'') === 'Chờ duyệt' && (c['Người duyệt được giao']||'') === me);
+    const cdCV = myCV.filter(c => c['Trạng thái'] === 'Chờ duyệt' && (c['Người duyệt được giao']||'') === me);
+    const cdCP = myCP.filter(c => (c['Trạng thái duyệt']||'') === 'Chờ duyệt' && (c['Người duyệt được giao']||'') === me);
     if(cdCV.length || cdCP.length){
       html += '<div class="card" style="border-color:var(--warn)"><div class="card-head" style="background:var(--warn-bg);border-radius:var(--r) var(--r) 0 0"><h3>📝 Chờ tôi phê duyệt ('+(cdCV.length+cdCP.length)+')</h3></div><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><tbody>';
       html += cdCV.slice(0,6).map(c=>'<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')"><td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">Công việc · '+esc(projName(c['Mã DA']))+' · '+esc(c['Phụ trách']||'')+'</div></td><td class="num"><span class="tag t-warn">Chờ duyệt</span></td></tr>').join('');
@@ -571,22 +744,25 @@ function projCard(d){
 
 /* ---------- Trang Dự án ---------- */
 function vProjects(){
+  const myDuan = visibleProjects();
   let html = leadSection() + '<div class="toolbar"><input id="fProj" placeholder="Tìm tên dự án, khách hàng…" oninput="render()" value="'+esc(window._fp||'')+'">'
     + '<select id="fProjTT" onchange="render()">' + opt(['Tất cả trạng thái',...TT_DUAN], window._fpt||'') + '</select></div>';
   window._fp = (document.getElementById('fProj')||{}).value ?? window._fp ?? '';
   const q = (window._fp||'').toLowerCase();
   const tt = window._fpt = (document.getElementById('fProjTT')||{}).value ?? window._fpt ?? '';
-  let list = S.duan.filter(d => (!q || (d['Tên dự án']+' '+d['Khách hàng']).toLowerCase().includes(q)) && (!tt || tt==='Tất cả trạng thái' || d['Trạng thái']===tt));
-  html += '<div class="card">' + (list.length ? list.map(projCard).join('') : '<div class="empty"><b>Không có dự án phù hợp</b>Bấm "+ Thêm mới" để tạo dự án</div>') + '</div>';
+  let list = myDuan.filter(d => (!q || (d['Tên dự án']+' '+d['Khách hàng']).toLowerCase().includes(q)) && (!tt || tt==='Tất cả trạng thái' || d['Trạng thái']===tt));
+  html += '<div class="card">' + (list.length ? list.map(projCard).join('') : '<div class="empty"><b>Không có dự án phù hợp</b>'+(user['Vai trò']==='nhanvien'?'Bạn chỉ thấy dự án được phân làm thành viên.':'Bấm "+ Thêm mới" để tạo dự án')+'</div>') + '</div>';
   return html;
 }
 
 /* ---------- Trang Công việc (nhóm theo thứ tự giai đoạn quy trình) ---------- */
 function vTasks(){
+  const myDuan = visibleProjects();
+  const myCV = visibleTasks();
   let html = '<div class="toolbar"><select id="fTaskProj" onchange="window._ftp=this.value;render()">'
-    + '<option value="">Tất cả dự án</option>' + S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._ftp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select>'
+    + '<option value="">Tất cả dự án</option>' + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._ftp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select>'
     + '<select id="fTaskTT" onchange="window._ftt=this.value;render()">' + opt(['Tất cả trạng thái',...TT_CV], window._ftt||'') + '</select></div>';
-  let list = S.congviec.filter(c => (!window._ftp || c['Mã DA']===window._ftp) && (!window._ftt || window._ftt==='Tất cả trạng thái' || c['Trạng thái']===window._ftt));
+  let list = myCV.filter(c => (!window._ftp || c['Mã DA']===window._ftp) && (!window._ftt || window._ftt==='Tất cả trạng thái' || c['Trạng thái']===window._ftt));
 
   // Nhóm theo giai đoạn — đúng thứ tự quy trình; việc mới ở giai đoạn nào tự xếp vào nhóm đó
   const groups = GIAI_DOAN.map(g => ({g, items: []}));
@@ -625,13 +801,15 @@ function vTasks(){
 
 /* ---------- Trang Chi phí ---------- */
 function vExpenses(){
+  const myDuan = visibleProjects();
+  const myCP = visibleExpenses();
   let html = '<div class="toolbar"><select onchange="window._fcp=this.value;render()">'
-    + '<option value="">Tất cả dự án</option>' + S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._fcp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select></div>';
-  let list = S.chiphi.filter(c => !window._fcp || c['Mã DA']===window._fcp);
+    + '<option value="">Tất cả dự án</option>' + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._fcp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select></div>';
+  let list = myCP.filter(c => !window._fcp || c['Mã DA']===window._fcp);
   const tong = list.reduce((a,c)=>a+(Number(c['Số tiền (đ)'])||0),0);
   // Tổng theo dự án + cảnh báo ngân sách
   if(window._fcp){
-    const d = S.duan.find(x=>x['Mã DA']===window._fcp);
+    const d = myDuan.find(x=>x['Mã DA']===window._fcp);
     const ns = Number(d && d['Ngân sách (đ)'])||0;
     const pct = ns ? Math.min(100, Math.round(tong/ns*100)) : 0;
     html += '<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">'
@@ -646,6 +824,214 @@ function vExpenses(){
   html += list.length ? list.map(c=>'<tr class="row-click" onclick="formExpense(\''+c['Mã CP']+'\')"><td class="muted">'+esc(c['Ngày chi']||'—')+'</td><td><b>'+esc(c['Hạng mục'])+'</b></td><td class="muted">'+esc(projName(c['Mã DA']))+'</td><td>'+tagTT(c['Loại chi phí'])+'</td><td class="num"><b>'+fmt(c['Số tiền (đ)'])+'</b></td><td>'+tagTT(c['Trạng thái duyệt']||'Chờ duyệt')+'</td><td class="muted">'+esc(c['Người ghi']||'')+'</td></tr>').join('')
     : '<tr><td colspan="7"><div class="empty"><b>Chưa có khoản chi nào</b>Bấm "+ Thêm mới" để ghi chi phí</div></td></tr>';
   html += '</tbody></table></div></div></div>';
+  return html;
+}
+
+/* ---------- ★ Nhóm 3 — Trang Tiến độ Gantt ---------- */
+function vGantt(){
+  const myDuan = visibleProjects();
+  const myCV = visibleTasks();
+  let html = '<div class="toolbar"><select id="gProj" onchange="window._gp=this.value;render()">'
+    + '<option value="">— Chọn dự án để xem Gantt —</option>'
+    + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._gp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select></div>';
+
+  if(!window._gp) {
+    return html + '<div class="empty"><b>Chọn 1 dự án ở trên</b>Gantt sẽ vẽ thanh tiến độ cho tất cả công việc theo timeline. Mỗi việc 1 thanh ngang — xưởng & công trường chạy song song nhìn thấy ngay.</div>';
+  }
+  const proj = myDuan.find(d => d['Mã DA']===window._gp);
+  if(!proj) { window._gp=''; return html; }
+
+  const tasks = myCV.filter(c => c['Mã DA']===window._gp);
+  if(!tasks.length) return html + '<div class="card-body"><div class="empty"><b>Dự án này chưa có công việc</b>Vào trang Công việc, bấm "+ Thêm mới"</div></div>';
+
+  // Tính range thời gian: từ min(Ngày bắt đầu) → max(Hạn hoàn thành)
+  const dates = [];
+  tasks.forEach(t => { if(t['Ngày bắt đầu']) dates.push(new Date(t['Ngày bắt đầu'])); if(t['Hạn hoàn thành']) dates.push(new Date(t['Hạn hoàn thành'])); });
+  if(proj['Ngày bắt đầu']) dates.push(new Date(proj['Ngày bắt đầu']));
+  if(proj['Ngày kết thúc DK']) dates.push(new Date(proj['Ngày kết thúc DK']));
+  if(!dates.length) return html + '<div class="empty"><b>Công việc chưa có ngày</b>Cần đặt Ngày bắt đầu + Hạn hoàn thành cho từng việc</div>';
+  let minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
+  // Đệm trước 2 ngày, sau 2 ngày
+  minD.setDate(minD.getDate()-2); maxD.setDate(maxD.getDate()+2);
+  const totalDays = Math.max(1, Math.round((maxD - minD)/86400000));
+  const dayW = totalDays <= 30 ? 28 : totalDays <= 90 ? 14 : totalDays <= 180 ? 8 : 5; // px/ngày
+  const colDay = dayW + 'px';
+
+  // Render header: tháng/ngày
+  let headerDays = '';
+  const months = {};
+  for(let i=0; i<=totalDays; i++){
+    const d = new Date(minD); d.setDate(d.getDate()+i);
+    const mk = d.getFullYear() + '-' + (d.getMonth()+1);
+    if(!months[mk]) months[mk] = {label: 'T'+(d.getMonth()+1)+'/'+d.getFullYear(), count: 0};
+    months[mk].count++;
+    headerDays += '<div style="border-right:1px solid var(--line);text-align:center;padding:6px 0;font-size:10px;color:var(--ink-soft);min-width:'+dayW+'px">'+d.getDate()+'</div>';
+  }
+
+  // Group tasks by giai đoạn
+  const groups = GIAI_DOAN.map(g => ({g, items:[]}));
+  const other = {g:'Ngoài quy trình', items:[]};
+  tasks.forEach(t => { const i = GIAI_DOAN.indexOf(t['Giai đoạn']); (i>-1?groups[i]:other).items.push(t); });
+  const all = groups.concat([other]).filter(grp => grp.items.length);
+
+  // Tính vạch hôm nay
+  const todayD = new Date(today());
+  const todayOffset = Math.round((todayD - minD)/86400000) * dayW;
+  const todayInRange = todayD >= minD && todayD <= maxD;
+
+  // Build Gantt
+  const barWidth = (totalDays+1) * dayW;
+  let gantt = '<div class="gantt-wrap"><div class="gantt" style="grid-template-columns:240px 1fr">';
+  // Header row
+  gantt += '<div class="gantt-row head"><div class="gantt-name">Công việc</div>'
+    + '<div style="position:relative;padding:0!important"><div style="display:flex">' + headerDays + '</div>'
+    + (todayInRange ? '<div class="gantt-today" style="left:'+todayOffset+'px"></div>' : '')
+    + '</div></div>';
+
+  all.forEach(grp => {
+    gantt += '<div class="gantt-row phase"><div class="gantt-name">'+esc(grp.g)+'</div><div></div></div>';
+    grp.items.forEach(t => {
+      const sd = t['Ngày bắt đầu'] ? new Date(t['Ngày bắt đầu']) : null;
+      const ed = t['Hạn hoàn thành'] ? new Date(t['Hạn hoàn thành']) : null;
+      let bar = '';
+      if(sd && ed){
+        const start = Math.max(0, Math.round((sd - minD)/86400000)) * dayW;
+        const dur   = Math.max(1, Math.round((ed - sd)/86400000) + 1) * dayW;
+        const tt = t['Trạng thái'];
+        const cls = tt==='Hoàn thành' ? 'done'
+                  : tt==='Tạm dừng' ? 'pause'
+                  : (ed < todayD && tt!=='Hoàn thành' && tt!=='Đã phê duyệt') ? 'late' : '';
+        const pct = Number(t['Tiến độ (%)'])||0;
+        const tip = esc(t['Tên công việc']) + ' · ' + esc(t['Phụ trách']||'—') + ' · ' + esc(sd.toISOString().slice(0,10)) + ' → ' + esc(ed.toISOString().slice(0,10)) + ' · ' + pct + '%';
+        bar = '<div class="gantt-bar '+cls+'" style="left:'+start+'px;width:'+dur+'px" title="'+tip+'" onclick="formTask(\''+t['Mã CV']+'\')">'+esc(t['Tên công việc'])+'</div>';
+      }
+      gantt += '<div class="gantt-row"><div class="gantt-name" style="cursor:pointer" onclick="formTask(\''+t['Mã CV']+'\')"><b style="font-size:12px">'+esc(t['Tên công việc'])+'</b><div class="muted" style="font-size:10.5px">'+esc(t['Phụ trách']||'—')+'</div></div>'
+        + '<div class="gantt-bar-cell" style="width:'+barWidth+'px">' + bar
+        + (todayInRange ? '<div class="gantt-today" style="left:'+todayOffset+'px"></div>' : '')
+        + '</div></div>';
+    });
+  });
+  gantt += '</div>';
+  gantt += '<div class="gantt-legend"><span><i></i> Đang chạy</span><span><i class="done"></i> Hoàn thành</span><span><i class="late"></i> Trễ hạn</span><span><i class="pause"></i> Tạm dừng</span><span style="margin-left:auto">Hôm nay: <span style="color:#E53935;font-weight:700">|</span></span></div>';
+  gantt += '</div>';
+  return html + gantt;
+}
+
+/* ---------- ★ Nhóm 3 — Trang Lịch hẹn (Calendar + List) ---------- */
+function vAppointments(){
+  const myLH = visibleAppointments();
+  // Tháng hiện đang xem
+  if(!window._lhM){ const d = new Date(); window._lhM = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  if(!window._lhV) window._lhV = 'calendar'; // calendar | list
+
+  const [yy, mm] = window._lhM.split('-').map(Number);
+  const prev = new Date(yy, mm-2, 1); const next = new Date(yy, mm, 1);
+  const prevKey = prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+  const nextKey = next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0');
+
+  let html = '<div class="toolbar">'
+    + '<button class="btn btn-ghost" onclick="window._lhM=\''+prevKey+'\';render()" style="padding:7px 12px">‹ Tháng trước</button>'
+    + '<b style="font-size:15px;flex:1;text-align:center">Tháng '+mm+' / '+yy+'</b>'
+    + '<button class="btn btn-ghost" onclick="window._lhM=\''+nextKey+'\';render()" style="padding:7px 12px">Tháng sau ›</button>'
+    + '<button class="btn '+(window._lhV==='calendar'?'btn-brass':'btn-ghost')+'" onclick="window._lhV=\'calendar\';render()" style="padding:7px 12px">📅 Lịch</button>'
+    + '<button class="btn '+(window._lhV==='list'?'btn-brass':'btn-ghost')+'" onclick="window._lhV=\'list\';render()" style="padding:7px 12px">📋 Danh sách</button>'
+    + '</div>';
+
+  if(window._lhV === 'calendar'){
+    // Render calendar
+    const first = new Date(yy, mm-1, 1);
+    const last = new Date(yy, mm, 0);
+    const daysInMonth = last.getDate();
+    let startDow = first.getDay(); // CN=0
+    startDow = startDow === 0 ? 6 : startDow - 1; // chuyển sang T2-CN: T2=0
+    const cells = [];
+    for(let i=0; i<startDow; i++) cells.push(null);
+    for(let i=1; i<=daysInMonth; i++) cells.push(i);
+    while(cells.length % 7 !== 0) cells.push(null);
+
+    let cal = '<div class="cal-grid">';
+    ['T2','T3','T4','T5','T6','T7','CN'].forEach(d => cal += '<div class="cal-head">'+d+'</div>');
+    const todayStr = today();
+    cells.forEach(day => {
+      if(day === null){ cal += '<div class="cal-day off"></div>'; return; }
+      const ds = yy+'-'+String(mm).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      const isToday = ds === todayStr;
+      const events = myLH.filter(l => l['Ngày'] === ds);
+      cal += '<div class="cal-day'+(isToday?' today':'')+'"><span class="d">'+day+'</span>';
+      events.slice(0,3).forEach(ev => {
+        const cls = ev['Trạng thái']==='Đã hoàn thành' ? 'done' : ev['Trạng thái']==='Hủy' ? 'cancel' : '';
+        const title = (ev['Giờ']?ev['Giờ']+' ':'') + (ev['Tiêu đề']||ev['Loại lịch hẹn']);
+        cal += '<span class="ev '+cls+'" onclick="formAppointment(\''+ev['Mã LH']+'\')" title="'+esc(title)+' — '+esc(ev['Khách']||projName(ev['Mã DA']))+'">'+esc(title)+'</span>';
+      });
+      if(events.length > 3) cal += '<span class="muted" style="font-size:10px">+ '+(events.length-3)+' nữa</span>';
+      cal += '</div>';
+    });
+    cal += '</div>';
+    html += cal;
+  } else {
+    // List view — tất cả lịch hẹn của tháng đó
+    const monthEvents = myLH.filter(l => l['Ngày'] && l['Ngày'].startsWith(window._lhM))
+      .sort((a,b) => (a['Ngày']+' '+(a['Giờ']||'')) > (b['Ngày']+' '+(b['Giờ']||'')) ? 1 : -1);
+    html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ngày · Giờ</th><th>Loại</th><th>Tiêu đề</th><th>Dự án</th><th>Khách / Người tham gia</th><th>Trạng thái</th></tr></thead><tbody>';
+    html += monthEvents.length ? monthEvents.map(l =>
+      '<tr class="row-click" onclick="formAppointment(\''+l['Mã LH']+'\')"><td><b>'+esc(l['Ngày'])+'</b>'+(l['Giờ']?'<div class="muted">'+esc(l['Giờ'])+'</div>':'')+'</td>'
+      + '<td><span class="tag t-brass">'+esc(l['Loại lịch hẹn']||'—')+'</span></td>'
+      + '<td><b>'+esc(l['Tiêu đề']||'—')+'</b>'+(l['Địa điểm']?'<div class="muted">📍 '+esc(l['Địa điểm'])+'</div>':'')+'</td>'
+      + '<td class="muted">'+esc(projName(l['Mã DA'])||'—')+'</td>'
+      + '<td>'+esc(l['Khách']||'—')+(l['Tham gia (nội bộ)']?'<div class="muted">'+esc(l['Tham gia (nội bộ)'])+'</div>':'')+'</td>'
+      + '<td>'+tagTT(l['Trạng thái']||'Đã lên lịch')+'</td></tr>'
+    ).join('') : '<tr><td colspan="6"><div class="empty"><b>Tháng này không có lịch hẹn</b>Bấm "+ Thêm mới" để đặt lịch</div></td></tr>';
+    html += '</tbody></table></div></div></div>';
+  }
+  return html;
+}
+
+/* ---------- ★ Nhóm 3 — Trang Nhà thầu phụ ---------- */
+function vSubcontractors(){
+  let html = '<div class="toolbar"><input id="fThau" placeholder="Tìm tên/SĐT thầu phụ…" oninput="render()" value="'+esc(window._fth||'')+'">'
+    + '<select id="fThauLoai" onchange="window._fthl=this.value;render()">' + opt(['Tất cả loại',...LOAI_THAU], window._fthl||'') + '</select>'
+    + '<select id="fThauTT" onchange="window._fthtt=this.value;render()">' + opt(['Tất cả trạng thái',...TT_THAU], window._fthtt||'') + '</select></div>';
+  window._fth = (document.getElementById('fThau')||{}).value ?? window._fth ?? '';
+  const q = (window._fth||'').toLowerCase();
+  const fl = window._fthl||''; const ft = window._fthtt||'';
+
+  let list = (S.thaubo||[]).filter(t =>
+    (!q || (t['Tên / Công ty']+' '+t['Người liên hệ']+' '+t['SĐT']).toLowerCase().includes(q))
+    && (!fl || fl==='Tất cả loại' || t['Loại thầu']===fl)
+    && (!ft || ft==='Tất cả trạng thái' || t['Trạng thái']===ft));
+
+  // Nhóm theo Loại thầu
+  const byType = {};
+  list.forEach(t => { const k = t['Loại thầu']||'Khác'; (byType[k]=byType[k]||[]).push(t); });
+
+  if(!list.length) return html + '<div class="empty"><b>Chưa có nhà thầu phụ</b>Bấm "+ Thêm mới" để thêm — gợi ý: thợ điện, thợ sơn, thợ kính, thợ rèm…</div>';
+
+  html += '<div class="card">';
+  Object.keys(byType).sort().forEach(loai => {
+    html += '<div class="phase-head"><span>'+esc(loai)+'</span><span class="cnt">'+byType[loai].length+' đơn vị</span></div>';
+    byType[loai].forEach(t => {
+      const star = Number(t['Đánh giá'])||0;
+      const stars = '★'.repeat(Math.max(0,Math.min(5,star))) + '<span style="opacity:.3">'+'★'.repeat(5-Math.max(0,Math.min(5,star)))+'</span>';
+      html += '<div class="sub-card" onclick="formSubcontractor(\''+esc(t['Mã TP'])+'\')">'
+        + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'
+        + '<div><b style="font-size:14.5px">'+esc(t['Tên / Công ty'])+'</b>'
+        + (star ? ' <span class="rating">'+stars+'</span>' : '')
+        + '<div class="muted" style="margin-top:3px">'
+        + (t['Người liên hệ']?esc(t['Người liên hệ'])+' · ':'')
+        + (t['SĐT']?'📞 '+esc(t['SĐT']):'')
+        + (t['Email']?' · ✉ '+esc(t['Email']):'')
+        + '</div>'
+        + (t['Địa chỉ']?'<div class="muted">📍 '+esc(t['Địa chỉ'])+'</div>':'')
+        + (t['Dự án đã làm']?'<div class="muted" style="margin-top:3px">Đã làm: '+esc(t['Dự án đã làm'])+'</div>':'')
+        + '</div>'
+        + '<div style="text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end">'
+        + tagTT(t['Trạng thái']||'Đang hợp tác')
+        + (t['SĐT'] ? '<div onclick="event.stopPropagation()">'+btnZalo(t['SĐT'],'Zalo')+'</div>' : '')
+        + '</div>'
+        + '</div></div>';
+    });
+  });
+  html += '</div>';
   return html;
 }
 
@@ -978,6 +1364,14 @@ function __updateProjSeedPreview(){
 function formProject(code){
   const d = code ? S.duan.find(x=>x['Mã DA']===code) : null;
   const isNew = !d;
+  // Multi-select thành viên — checkbox list, lưu CSV Mã NV
+  const memberCodes = String(d?.['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const activeStaff = S.nhansu.filter(n => n['Trạng thái']!=='Nghỉ việc');
+  const memberHtml = '<div style="border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:8px 11px;max-height:140px;overflow-y:auto;background:var(--card)">'
+    + activeStaff.map(n => '<label style="display:block;padding:3px 0;font-size:13px;cursor:pointer">'
+        + '<input type="checkbox" class="pMember" value="'+esc(n['Mã NV'])+'" '+(memberCodes.includes(n['Mã NV'])?'checked':'')+'> '
+        + esc(n['Họ tên']) + (n['Chức danh']?' <span class="muted">— '+esc(n['Chức danh'])+'</span>':'')
+        + '</label>').join('') + '</div>';
   const seedBlock = isNew
     ? '<div class="field" style="margin-top:4px">'
       + '<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">'
@@ -986,11 +1380,12 @@ function formProject(code){
       + '<div id="pSeedPreview" style="border:1px solid var(--brass-soft);border-top:none;border-radius:0 0 var(--r-sm) var(--r-sm);padding:11px 14px;background:#FFFDF8;max-height:240px;overflow-y:auto">'
       + seedPreviewHtml('Thiết kế & Thi công') + '</div></div>'
     : '';
+  const zaloBtn = (!isNew && d['SĐT khách']) ? ' ' + btnZalo(d['SĐT khách'], 'Nhắn Zalo khách') : '';
   openModal(isNew ? 'Thêm dự án mới' : 'Dự án ' + code,
     fld('Tên dự án *', inp('pTen', d?.['Tên dự án'],'text','vd: Căn hộ anh Hùng — Vinhomes Huế'))
     + '<div class="grid2">'
     + fld('Khách hàng', inp('pKH', d?.['Khách hàng']))
-    + fld('SĐT khách', inp('pSDT', d?.['SĐT khách'],'tel'))
+    + fld('SĐT khách' + zaloBtn, inp('pSDT', d?.['SĐT khách'],'tel'))
     + '</div>'
     + fld('Địa chỉ công trình', inp('pDC', d?.['Địa chỉ công trình']))
     + '<div class="grid2">'
@@ -1003,14 +1398,17 @@ function formProject(code){
     + fld('Phụ trách', selStaff('pPT', d?.['Phụ trách']))
     + fld('Trạng thái', sel('pTT', TT_DUAN, d?.['Trạng thái']||'Đang triển khai'))
     + '</div>'
+    + fld('Thành viên tham gia <span class="muted">(nhân viên được tick mới thấy dự án này)</span>', memberHtml)
     + fld('Ghi chú', '<textarea id="pGC" rows="2">'+esc(d?.['Ghi chú']||'')+'</textarea>')
     + seedBlock,
     function save(){
       if(!V('pTen')) return toast('Chưa nhập tên dự án', true);
+      const members = Array.from(document.querySelectorAll('.pMember:checked')).map(el=>el.value).join(',');
       const rec = {'Mã DA': code||'', 'Tên dự án':V('pTen'),'Khách hàng':V('pKH'),'SĐT khách':V('pSDT'),
         'Địa chỉ công trình':V('pDC'),'Loại hình':V('pLH'),'Giai đoạn':V('pGD'),
         'Ngân sách (đ)':V('pNS'),'Giá trị HĐ (đ)':V('pHD'),'Tiến độ (%)': d?.['Tiến độ (%)']||0,
-        'Ngày bắt đầu':V('pBD'),'Ngày kết thúc DK':V('pKT'),'Phụ trách':V('pPT'),'Trạng thái':V('pTT'),'Ghi chú':V('pGC')};
+        'Ngày bắt đầu':V('pBD'),'Ngày kết thúc DK':V('pKT'),'Phụ trách':V('pPT'),'Trạng thái':V('pTT'),'Ghi chú':V('pGC'),
+        'Thành viên': members};
       const seedEl = document.getElementById('pSeed');
       const seed = isNew && seedEl && seedEl.checked;
       if(isNew){ rec['Mã DA'] = tempCode('DA', S.duan, 'Mã DA'); S.duan.push(rec); }
@@ -1018,10 +1416,10 @@ function formProject(code){
       closeModal();
       if(isNew && seed){
         pushOp('seedNewProject', { project: rec, seedTasks: true });
-        toast('Đã thêm dự án ' + rec['Mã DA'] + ' + bộ việc mẫu');
+        /* pushOp tự toast kết quả */
       } else {
         pushOp('saveProject', rec);
-        toast(isNew ? 'Đã thêm dự án' : 'Đã cập nhật dự án');
+        /* toast kết quả thật chạy trong pushOp */
       }
     },
     (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa dự án '+code+'? Công việc & chi phí liên quan vẫn còn trên Sheets.')) return;
@@ -1081,7 +1479,7 @@ function formTask(code){
       }
       if(isNew){ rec['Mã CV'] = tempCode('CV', S.congviec, 'Mã CV'); S.congviec.push(rec); }
       else Object.assign(c, rec);
-      closeModal(); pushOp('saveTask', rec); toast(isNew?'Đã giao việc':'Đã cập nhật công việc');
+      closeModal(); pushOp('saveTask', rec); /* pushOp tự toast */
     },
     (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa công việc '+code+'?')) return;
       S.congviec = S.congviec.filter(x=>x['Mã CV']!==code); closeModal(); pushOp('deleteTask',{code}); toast('Đã xóa'); } : null
@@ -1133,7 +1531,7 @@ function formExpense(code){
       }
       if(isNew){ rec['Mã CP'] = tempCode('CP', S.chiphi, 'Mã CP'); S.chiphi.push(rec); }
       else Object.assign(c, rec);
-      closeModal(); pushOp('saveExpense', rec); toast(isNew?'Đã ghi khoản chi':'Đã cập nhật');
+      closeModal(); pushOp('saveExpense', rec); /* pushOp tự toast */
     },
     (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa khoản chi '+code+'?')) return;
       S.chiphi = S.chiphi.filter(x=>x['Mã CP']!==code); closeModal(); pushOp('deleteExpense',{code}); toast('Đã xóa'); } : null
@@ -1162,11 +1560,101 @@ function formStaff(code){
         'SĐT':V('sSDT'),'Email':V('sEmail'),'Mật khẩu':V('sMK'),'Trạng thái':V('sTT'),'Cấp duyệt':V('sCapDuyet')};
       if(isNew){ rec['Mã NV'] = tempCode('NV', S.nhansu, 'Mã NV'); S.nhansu.push(rec); }
       else Object.assign(n, rec);
-      closeModal(); pushOp('saveStaff', rec); toast(isNew?'Đã thêm nhân sự':'Đã cập nhật');
+      closeModal(); pushOp('saveStaff', rec); /* pushOp tự toast */
     },
     (!isNew && code!==user['Mã NV']) ? function(){ if(!confirm('Xóa nhân sự '+code+'?')) return;
       S.nhansu = S.nhansu.filter(x=>x['Mã NV']!==code); closeModal(); pushOp('deleteStaff',{code}); toast('Đã xóa'); } : null
   );
+}
+
+/* ----- ★ Nhóm 3 — Nhà thầu phụ ----- */
+function formSubcontractor(code){
+  if(!can('edit')) return toast('Bạn không có quyền thêm/sửa thầu phụ', true);
+  const t = code ? (S.thaubo||[]).find(x=>x['Mã TP']===code) : null;
+  const isNew = !t;
+  const zaloBtn = (!isNew && t['SĐT']) ? ' ' + btnZalo(t['SĐT'], 'Zalo') : '';
+  openModal(isNew ? 'Thêm nhà thầu phụ' : 'Thầu phụ ' + code,
+    fld('Tên / Công ty *', inp('thTen', t?.['Tên / Công ty'],'text','vd: Xưởng Sơn ABC / Anh Hùng — Thợ kính'))
+    + '<div class="grid2">'
+    + fld('Loại thầu', sel('thLoai', LOAI_THAU, t?.['Loại thầu']||'Điện'))
+    + fld('Trạng thái', sel('thTT', TT_THAU, t?.['Trạng thái']||'Đang hợp tác'))
+    + fld('Người liên hệ', inp('thNguoi', t?.['Người liên hệ']))
+    + fld('SĐT' + zaloBtn, inp('thSDT', t?.['SĐT'],'tel'))
+    + fld('Email', inp('thMail', t?.['Email'],'email'))
+    + fld('Đánh giá <span class="muted">(0–5 sao)</span>', inp('thStar', t?.['Đánh giá']||'','number'))
+    + '</div>'
+    + fld('Địa chỉ', inp('thDC', t?.['Địa chỉ']))
+    + fld('Dự án đã làm với MDC <span class="muted">(VD: DA0001, DA0003)</span>', inp('thDA', t?.['Dự án đã làm']))
+    + fld('Ghi chú <span class="muted">(điểm mạnh, điểm yếu, đơn giá tham khảo…)</span>', '<textarea id="thGC" rows="3">'+esc(t?.['Ghi chú']||'')+'</textarea>'),
+    function save(){
+      if(!V('thTen')) return toast('Chưa nhập tên thầu phụ', true);
+      const rec = {'Mã TP': code||'', 'Tên / Công ty':V('thTen'),'Loại thầu':V('thLoai'),
+        'Người liên hệ':V('thNguoi'),'SĐT':V('thSDT'),'Email':V('thMail'),'Địa chỉ':V('thDC'),
+        'Đánh giá':V('thStar'),'Dự án đã làm':V('thDA'),'Trạng thái':V('thTT'),'Ghi chú':V('thGC')};
+      if(isNew){ rec['Mã TP'] = tempCode('TP', S.thaubo||[], 'Mã TP'); (S.thaubo=S.thaubo||[]).push(rec); }
+      else Object.assign(t, rec);
+      closeModal(); pushOp('saveSubcontractor', rec); /* pushOp tự toast */
+    },
+    (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa thầu phụ '+code+'?')) return;
+      S.thaubo = (S.thaubo||[]).filter(x=>x['Mã TP']!==code); closeModal(); pushOp('deleteSubcontractor',{code}); toast('Đã xóa'); } : null
+  );
+}
+
+/* ----- ★ Nhóm 3 — Lịch hẹn ----- */
+function formAppointment(code){
+  const l = code ? (S.lichhen||[]).find(x=>x['Mã LH']===code) : null;
+  const isNew = !l;
+  // Multi-select người tham gia nội bộ — checkbox list
+  const joinerNames = String(l?.['Tham gia (nội bộ)']||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const activeStaff = S.nhansu.filter(n => n['Trạng thái']!=='Nghỉ việc');
+  const joinerHtml = '<div style="border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:8px 11px;max-height:120px;overflow-y:auto;background:var(--card)">'
+    + activeStaff.map(n => '<label style="display:inline-block;padding:3px 8px;font-size:13px;cursor:pointer">'
+        + '<input type="checkbox" class="lhJoiner" value="'+esc(n['Họ tên'])+'" '+(joinerNames.includes(n['Họ tên'])?'checked':'')+'> '
+        + esc(n['Họ tên']) + '</label>').join('') + '</div>';
+  // Auto-fill khách từ dự án khi đổi dự án
+  const zaloBtn = (!isNew && l['SĐT khách']) ? ' ' + btnZalo(l['SĐT khách'], 'Zalo khách') : '';
+  openModal(isNew ? 'Đặt lịch hẹn mới' : 'Lịch hẹn ' + code,
+    '<div class="grid2">'
+    + fld('Loại lịch hẹn *', sel('lhLoai', LOAI_LH, l?.['Loại lịch hẹn']||'Khảo sát hiện trạng'))
+    + fld('Trạng thái', sel('lhTT', TT_LH, l?.['Trạng thái']||'Đã lên lịch'))
+    + '</div>'
+    + fld('Tiêu đề <span class="muted">(VD: Trình 3D phương án bếp + phòng khách)</span>', inp('lhTitle', l?.['Tiêu đề']))
+    + '<div class="grid2">'
+    + fld('Ngày *', inp('lhNgay', l?.['Ngày']||today(),'date'))
+    + fld('Giờ', inp('lhGio', l?.['Giờ']||'09:00','time'))
+    + '</div>'
+    + fld('Địa điểm', inp('lhDD', l?.['Địa điểm'],'text','vd: Văn phòng MDC / Công trình A. Tuấn — Ba Đồn'))
+    + fld('Thuộc dự án <span class="muted">(tùy chọn — auto-điền khách nếu chọn)</span>',
+        '<select id="lhDA" onchange="__lhAutoFillKH()"><option value="">— Không gắn dự án —</option>'+S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(d['Mã DA']===l?.['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('')+'</select>')
+    + '<div class="grid2">'
+    + fld('Khách', inp('lhKH', l?.['Khách']))
+    + fld('SĐT khách' + zaloBtn, inp('lhSDT', l?.['SĐT khách'],'tel'))
+    + '</div>'
+    + fld('Người tham gia (nội bộ)', joinerHtml)
+    + fld('Ghi chú <span class="muted">(nội dung cần chuẩn bị, vật tư mang theo…)</span>', '<textarea id="lhGC" rows="3">'+esc(l?.['Ghi chú']||'')+'</textarea>'),
+    function save(){
+      if(!V('lhNgay')) return toast('Chưa chọn ngày', true);
+      const joiners = Array.from(document.querySelectorAll('.lhJoiner:checked')).map(el=>el.value).join(', ');
+      const rec = {'Mã LH': code||'', 'Mã DA':V('lhDA'),'Loại lịch hẹn':V('lhLoai'),
+        'Tiêu đề':V('lhTitle'),'Ngày':V('lhNgay'),'Giờ':V('lhGio'),'Địa điểm':V('lhDD'),
+        'Tham gia (nội bộ)':joiners,'Khách':V('lhKH'),'SĐT khách':V('lhSDT'),
+        'Trạng thái':V('lhTT'),'Ghi chú':V('lhGC'),'Người tạo': l?.['Người tạo']||user['Họ tên']};
+      if(isNew){ rec['Mã LH'] = tempCode('LH', S.lichhen||[], 'Mã LH'); (S.lichhen=S.lichhen||[]).push(rec); }
+      else Object.assign(l, rec);
+      closeModal(); pushOp('saveAppointment', rec); /* pushOp tự toast */
+    },
+    (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa lịch hẹn '+code+'?')) return;
+      S.lichhen = (S.lichhen||[]).filter(x=>x['Mã LH']!==code); closeModal(); pushOp('deleteAppointment',{code}); toast('Đã xóa'); } : null
+  );
+}
+function __lhAutoFillKH(){
+  const da = document.getElementById('lhDA').value;
+  if(!da) return;
+  const d = S.duan.find(x=>x['Mã DA']===da);
+  if(!d) return;
+  const kh = document.getElementById('lhKH'); const sdt = document.getElementById('lhSDT');
+  if(kh && !kh.value) kh.value = d['Khách hàng']||'';
+  if(sdt && !sdt.value) sdt.value = d['SĐT khách']||'';
 }
 
 /* ----- Cấu hình API từ màn hình đăng nhập ----- */
