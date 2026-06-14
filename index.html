@@ -492,10 +492,12 @@ function pushOp(action, data){
     const isUnknownAction = errMsg.includes('không hợp lệ') || errMsg.includes('khong hop le');
     // Fallback: nếu seedNewProject không có ở backend cũ → chuyển sang saveProject (không tạo việc mẫu)
     if(isUnknownAction && action === 'seedNewProject' && data.project){
-      toast('⚠ Backend chưa có seedNewProject — đang lưu dự án (không có việc mẫu)', true);
       return apiPost('saveProject', data.project).then(j2 => {
-        if(j2.ok){ setSync('ok','Đã lưu dự án (chưa có việc mẫu)'); syncAll(false); }
-        else { rollback(j2.error || 'Fallback saveProject cũng fail'); }
+        if(j2.ok){
+          setSync('ok','Đã lưu dự án');
+          toast('✓ Đã lưu dự án (cần Deploy backend mới để tự tạo việc mẫu)');
+          syncAll(false);
+        } else { rollback(j2.error || 'Fallback saveProject cũng fail'); }
       }).catch(() => { rollback('Lỗi mạng khi fallback saveProject'); });
     }
     rollback(j.error || 'Lỗi không rõ');
