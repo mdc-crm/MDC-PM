@@ -740,35 +740,16 @@ function vDashboard(){
 function kpi(lbl,val,hint,cls){ return '<div class="kpi '+(cls||'')+'"><div class="lbl">'+lbl+'</div><div class="val">'+val+'</div><div class="hint">'+hint+'</div></div>'; }
 function projName(code){ const d = S.duan.find(x=>x['Mã DA']===code); return d ? d['Tên dự án'] : (code||'—'); }
 
-// % tiến độ TỰ TÍNH từ số công việc đã hoàn thành của dự án
-function projAutoProgress(code){
-  const cv = S.congviec.filter(c=>c['Mã DA']===code);
-  if(!cv.length) return null; // chưa có việc → dùng số nhập tay
-  const done = cv.filter(c=>c['Trạng thái']==='Hoàn thành').length;
-  return { pct: Math.round(done/cv.length*100), done, total: cv.length };
-}
-// Số việc trễ hạn của dự án
-function projOverdueCount(code){
-  return S.congviec.filter(c=>c['Mã DA']===code && c['Trạng thái']!=='Hoàn thành'
-    && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0).length;
-}
-
 function projCard(d){
   const idx = GIAI_DOAN.indexOf(d['Giai đoạn']);
   const rail = GIAI_DOAN.map((g,i)=>'<i class="'+(i<idx?'done':i===idx?'now':'')+'" title="'+g+'"></i>').join('');
   const chi = S.chiphi.filter(c=>c['Mã DA']===d['Mã DA']).reduce((a,c)=>a+(Number(c['Số tiền (đ)'])||0),0);
   const ns = Number(d['Ngân sách (đ)'])||0;
   const over = ns>0 && chi>ns;
-  const ap = projAutoProgress(d['Mã DA']);
-  const pct = ap ? ap.pct : (Number(d['Tiến độ (%)'])||0);
-  const overdue = projOverdueCount(d['Mã DA']);
   return '<div class="proj-card" onclick="formProject(\''+d['Mã DA']+'\')">'
     + '<div class="proj-top"><div><b>'+esc(d['Tên dự án'])+'</b><div class="proj-meta"><span>'+esc(d['Khách hàng']||'')+'</span><span>'+esc(d['Loại hình']||'')+'</span><span>PT: '+esc(d['Phụ trách']||'—')+'</span></div></div>'
     + '<div style="text-align:right"><span class="tag t-brass">'+esc(d['Giai đoạn']||'—')+'</span>'
     + '<div class="muted" style="margin-top:4px">Chi '+fmtTr(chi)+(ns?' / NS '+fmtTr(ns):'')+(over?' <span class="tag t-bad" style="font-size:10px">Vượt NS</span>':'')+'</div></div></div>'
-    + '<div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px"><div class="bar" style="flex:1"><i style="width:'+pct+'%"></i></div>'
-    + '<span class="muted" style="font-size:11px;white-space:nowrap">'+pct+'%'+(ap?' ('+ap.done+'/'+ap.total+' việc)':'')+'</span>'
-    + (overdue?' <span class="tag t-bad" style="font-size:10px">⚠ '+overdue+' việc trễ</span>':'')+'</div>'
     + '<div class="phase-rail">'+rail+'</div></div>';
 }
 
