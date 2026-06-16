@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- MDC-PM v1.1 — sửa: phân quyền theo capBacRank_ (GĐ/TGĐ thấy mọi dự án), chống trùng mã DA khi convert lead, đồng bộ mã thật từ server -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -391,10 +392,13 @@ async function apiGet(action){
 async function apiPost(action, data){
   const url = store.api;
   if(!url) throw new Error('Chưa cấu hình URL Apps Script');
+  // Loại field nội bộ __newRef (chỉ dùng ở client để nhận mã thật về) khỏi payload
+  const payload = {};
+  Object.keys(data||{}).forEach(k=>{ if(k!=='__newRef') payload[k]=data[k]; });
   const res = await fetch(url, {
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'}, // chống CORS preflight
-    body: JSON.stringify({action, data, user: user ? user['Họ tên'] : ''})
+    body: JSON.stringify({action, data: payload, user: user ? user['Họ tên'] : ''})
   });
   return res.json();
 }
@@ -483,7 +487,13 @@ function pushOp(action, data){
 
   apiPost(action, data).then(j=>{
     if(j.ok){
-      if(j.code && data.__newRef){ data.__newRef.code = j.code; }
+      if(j.code && data.__newRef){
+        // Cập nhật mã thật do server sinh vào record local (key 'Mã DA' cho dự án)
+        const ref = data.__newRef;
+        if('Mã DA' in ref) ref['Mã DA'] = j.code;
+        else if('Mã CV' in ref) ref['Mã CV'] = j.code;
+        else ref.code = j.code;
+      }
       setSync('ok','Đã lưu lên Sheets'); syncAll(false);
       return;
     }
@@ -564,7 +574,7 @@ function capBacRank_(vaiTro){
               hoặc dự án mình làm Phụ trách */
 function visibleProjects(){
   if(!user) return [];
-  const r = user['Vai trò'];
+  const r = capBacRank_(user['Vai trò']);
   if(r === 'admin' || r === 'quanly') return S.duan;
   const me = user['Họ tên'] || '', myCode = user['Mã NV'] || '';
   return S.duan.filter(d => {
@@ -578,20 +588,23 @@ function visibleProjectCodes(){
 }
 function visibleTasks(){
   const codes = visibleProjectCodes();
-  return (user && (user['Vai trò']==='admin' || user['Vai trò']==='quanly'))
+  const r = user ? capBacRank_(user['Vai trò']) : '';
+  return (r==='admin' || r==='quanly')
     ? S.congviec
     : S.congviec.filter(c => codes.has(c['Mã DA']) || (c['Phụ trách']||'') === (user['Họ tên']||''));
 }
 function visibleExpenses(){
   const codes = visibleProjectCodes();
-  return (user && (user['Vai trò']==='admin' || user['Vai trò']==='quanly'))
+  const r = user ? capBacRank_(user['Vai trò']) : '';
+  return (r==='admin' || r==='quanly')
     ? S.chiphi
     : S.chiphi.filter(c => codes.has(c['Mã DA']) || (c['Người ghi']||'') === (user['Họ tên']||''));
 }
 function visibleAppointments(){
   if(!user) return [];
   const codes = visibleProjectCodes();
-  if(user['Vai trò']==='admin' || user['Vai trò']==='quanly') return S.lichhen;
+  const r = capBacRank_(user['Vai trò']);
+  if(r==='admin' || r==='quanly') return S.lichhen;
   const me = user['Họ tên']||'';
   return S.lichhen.filter(l => codes.has(l['Mã DA']) || String(l['Tham gia (nội bộ)']||'').includes(me));
 }
@@ -653,7 +666,7 @@ function go(view){
   document.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === view));
   document.getElementById('viewTitle').textContent = (VIEWS.find(v=>v.id===view)||{}).name || '';
   const btnAdd = document.getElementById('btnAdd');
-  const addable = {duan:can('edit')||user['Vai trò']!=='nhanvien', congviec:true, chiphi:true, nhansu:can('staff'), thaubo:can('edit'), lichhen:true};
+  const addable = {duan:can('edit')||capBacRank_(user['Vai trò'])!=='nhanvien', congviec:true, chiphi:true, nhansu:can('staff'), thaubo:can('edit'), lichhen:true};
   btnAdd.classList.toggle('hide', !addable[view]);
   render();
   window.scrollTo(0,0);
@@ -781,7 +794,7 @@ function vProjects(){
   const q = (window._fp||'').toLowerCase();
   const tt = window._fpt = (document.getElementById('fProjTT')||{}).value ?? window._fpt ?? '';
   let list = myDuan.filter(d => (!q || (d['Tên dự án']+' '+d['Khách hàng']).toLowerCase().includes(q)) && (!tt || tt==='Tất cả trạng thái' || d['Trạng thái']===tt));
-  html += '<div class="card">' + (list.length ? list.map(projCard).join('') : '<div class="empty"><b>Không có dự án phù hợp</b>'+(user['Vai trò']==='nhanvien'?'Bạn chỉ thấy dự án được phân làm thành viên.':'Bấm "+ Thêm mới" để tạo dự án')+'</div>') + '</div>';
+  html += '<div class="card">' + (list.length ? list.map(projCard).join('') : '<div class="empty"><b>Không có dự án phù hợp</b>'+(capBacRank_(user['Vai trò'])==='nhanvien'?'Bạn chỉ thấy dự án được phân làm thành viên.':'Bấm "+ Thêm mới" để tạo dự án')+'</div>') + '</div>';
   return html;
 }
 
@@ -1289,7 +1302,7 @@ function taskApproveHtml(c, isNew){
   return html;
 }
 function expenseApproveHtml(c, isNew){
-  if(isNew) return user['Vai trò'] === 'nhanvien'
+  if(isNew) return capBacRank_(user['Vai trò']) === 'nhanvien'
     ? '<p class="muted" style="margin-bottom:8px">💡 Khoản chi sẽ ở trạng thái "Chờ duyệt" cho tới khi cấp trên phê duyệt.</p>' : '';
   const assignee = c['Người duyệt được giao'] || '';
   const isMine = assignee && user['Họ tên'] === assignee;
@@ -1358,7 +1371,7 @@ function formConvertLead(code){
       S.duan.push(rec);
       l.maDA = rec['Mã DA']; // ẩn khỏi danh sách chờ ngay lập tức
       closeModal();
-      pushOp('convertLead', { leadCode: l.code, project: rec, seedTasks: seed });
+      pushOp('convertLead', { leadCode: l.code, project: rec, seedTasks: seed, __newRef: rec });
       toast('Đã chuyển ' + (l.ten || l.code) + ' thành dự án ' + rec['Mã DA'] + (seed ? ' + bộ việc mẫu' : ''));
     }
   );
@@ -1444,12 +1457,11 @@ function formProject(code){
       if(isNew){ rec['Mã DA'] = tempCode('DA', S.duan, 'Mã DA'); S.duan.push(rec); }
       else Object.assign(d, rec);
       closeModal();
-      if(isNew && seed){
-        pushOp('seedNewProject', { project: rec, seedTasks: true });
-        /* pushOp tự toast kết quả */
+      if(isNew){
+        // Dự án mới (có/không có việc mẫu) → backend tự sinh mã chuẩn, chống trùng
+        pushOp('seedNewProject', { project: rec, seedTasks: !!seed, __newRef: rec });
       } else {
         pushOp('saveProject', rec);
-        /* toast kết quả thật chạy trong pushOp */
       }
     },
     (!isNew && can('deleteAny')) ? function(){ if(!confirm('Xóa dự án '+code+'? Công việc & chi phí liên quan vẫn còn trên Sheets.')) return;
@@ -1538,7 +1550,7 @@ function formExpense(code){
       if(!V('eHM')) return toast('Chưa nhập hạng mục', true);
       if(!V('eDA')) return toast('Chưa chọn dự án', true);
       if(!Number(V('eST'))) return toast('Số tiền chưa hợp lệ', true);
-      if(isNew && user['Vai trò']==='nhanvien' && !V('eNguoiDuyet')) return toast('Phải chọn người phê duyệt cho khoản chi', true);
+      if(isNew && capBacRank_(user['Vai trò'])==='nhanvien' && !V('eNguoiDuyet')) return toast('Phải chọn người phê duyệt cho khoản chi', true);
       const rec = {'Mã CP': code||'','Mã DA':V('eDA'),'Hạng mục':V('eHM'),'Loại chi phí':V('eLoai'),
         'Số tiền (đ)':Number(V('eST')),'Ngày chi':V('eNgay'),'Người ghi': c?.['Người ghi']||user['Họ tên'],
         'Chứng từ':V('eCT'),'Ghi chú':V('eGC')};
@@ -1548,7 +1560,7 @@ function formExpense(code){
       const ykE = document.getElementById('eYK');
       if(ykE) rec['Ý kiến chỉ đạo'] = ykE.value.trim();
       if(isNew){
-        if(user['Vai trò'] === 'nhanvien'){ rec['Trạng thái duyệt'] = 'Chờ duyệt'; }
+        if(capBacRank_(user['Vai trò']) === 'nhanvien'){ rec['Trạng thái duyệt'] = 'Chờ duyệt'; }
         else { rec['Trạng thái duyệt'] = 'Đã duyệt'; rec['Người duyệt'] = user['Họ tên']; rec['Ngày duyệt'] = today(); }
       } else rec['Trạng thái duyệt'] = c['Trạng thái duyệt'] || 'Chờ duyệt';
       if(window.__eApprove){
