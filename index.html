@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- MDC-PM v1.2 — phân quyền mới: mọi nhân sự XEM được hết dự án/công việc; chỉ người phụ trách (hoặc QL/GĐ) mới SỬA. Kèm v1.1: capBacRank_, chống trùng mã DA -->
+<!-- MDC-PM v1.3 — XEM: mọi nhân sự xem hết (bỏ ràng buộc Thành viên). SỬA: chỉ QL trở lên / phụ trách dự án / phụ trách công việc -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -568,24 +568,28 @@ function capBacRank_(vaiTro){
   return 'nhanvien';
 }
 
-/* ★ PHÂN QUYỀN PM (cập nhật):
-   - XEM: mọi nhân sự thấy TẤT CẢ dự án, công việc, chi phí, lịch hẹn.
-   - SỬA/CẬP NHẬT: chỉ người Phụ trách dự án (hoặc Thành viên), hoặc cấp Quản lý/Giám đốc trở lên.
-   canEditProject(d): true nếu user là admin/quanly, hoặc là Phụ trách / Thành viên của dự án đó. */
+/* ★ PHÂN QUYỀN PM:
+   - XEM: mọi nhân sự có tài khoản đều thấy TẤT CẢ dự án, công việc, chi phí, lịch hẹn.
+   - SỬA/CẬP NHẬT: chỉ 3 nhóm:
+       (1) cấp Quản lý trở lên (quanly/admin),
+       (2) người Phụ trách dự án,
+       (3) người Phụ trách công việc đó (chỉ cho riêng công việc mình phụ trách).
+   Không còn dùng cột "Thành viên" để xét quyền. */
 function canEditProject(d){
   if(!user || !d) return false;
   const r = capBacRank_(user['Vai trò']);
   if(r === 'admin' || r === 'quanly') return true;
-  const me = user['Họ tên'] || '', myCode = user['Mã NV'] || '';
-  if((d['Phụ trách']||'') === me) return true;
-  const tv = String(d['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
-  return tv.includes(myCode) || tv.includes(me);
+  return (d['Phụ trách']||'') === (user['Họ tên']||'');   // phụ trách dự án
 }
-// Quyền sửa 1 công việc: dựa trên dự án chứa nó
+// Quyền sửa 1 công việc: cấp QL trở lên, HOẶC phụ trách dự án, HOẶC phụ trách chính công việc đó
 function canEditTask(c){
   if(!user || !c) return false;
+  const r = capBacRank_(user['Vai trò']);
+  if(r === 'admin' || r === 'quanly') return true;
+  const me = user['Họ tên'] || '';
+  if((c['Phụ trách']||'') === me) return true;            // phụ trách công việc
   const d = S.duan.find(x=>x['Mã DA']===c['Mã DA']);
-  return canEditProject(d);
+  return !!d && (d['Phụ trách']||'') === me;              // phụ trách dự án chứa việc
 }
 
 function visibleProjects(){ return user ? S.duan : []; }
@@ -1433,7 +1437,7 @@ function formProject(code){
     + fld('Phụ trách', selStaff('pPT', d?.['Phụ trách']))
     + fld('Trạng thái', sel('pTT', TT_DUAN, d?.['Trạng thái']||'Đang triển khai'))
     + '</div>'
-    + fld('Thành viên tham gia <span class="muted">(nhân viên được tick mới thấy dự án này)</span>', memberHtml)
+    + fld('Thành viên tham gia <span class="muted">(danh sách tham khảo — mọi nhân sự đều xem được dự án)</span>', memberHtml)
     + fld('Ghi chú', '<textarea id="pGC" rows="2">'+esc(d?.['Ghi chú']||'')+'</textarea>')
     + seedBlock,
     readOnly ? null : function save(){
@@ -1467,7 +1471,7 @@ function formTask(code){
   const c = code ? S.congviec.find(x=>x['Mã CV']===code) : null;
   const isNew = !c;
   const _projC = c ? S.duan.find(x=>x['Mã DA']===c['Mã DA']) : null;
-  const readOnly = !isNew && !canEditProject(_projC);   // không phụ trách dự án → chỉ xem
+  const readOnly = !isNew && !canEditTask(c);   // QL+ / phụ trách dự án / phụ trách công việc mới sửa được
   const roBanner = readOnly ? '<div style="background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:var(--r-sm);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--brass-deep)">👁️ Chế độ chỉ xem — chỉ người phụ trách dự án này mới được cập nhật công việc.</div>' : '';
   openModal(isNew ? 'Giao việc mới' : 'Công việc ' + code,
     roBanner
@@ -1492,7 +1496,8 @@ function formTask(code){
       if(!V('tTen')) return toast('Chưa nhập tên công việc', true);
       if(!V('tDA')) return toast('Chưa chọn dự án', true);
       const _proj = S.duan.find(x=>x['Mã DA']===V('tDA'));
-      if(!canEditProject(_proj)) return toast('Chỉ người phụ trách dự án này mới được cập nhật công việc', true);
+      const _allow = isNew ? canEditProject(_proj) : canEditTask(c);
+      if(!_allow) return toast('Bạn không có quyền cập nhật công việc này', true);
       let tt = V('tTT'), td = Math.max(0, Math.min(100, Number(V('tTD'))||0));
       if(tt==='Hoàn thành') td = 100; else if(td===100) tt='Hoàn thành';
       const nguoiDuyet = V('tNguoiDuyet');
