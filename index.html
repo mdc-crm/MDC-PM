@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- MDC-PM v1.1 — sửa: phân quyền theo capBacRank_ (GĐ/TGĐ thấy mọi dự án), chống trùng mã DA khi convert lead, đồng bộ mã thật từ server -->
+<!-- MDC-PM v1.2 — phân quyền mới: mọi nhân sự XEM được hết dự án/công việc; chỉ người phụ trách (hoặc QL/GĐ) mới SỬA. Kèm v1.1: capBacRank_, chống trùng mã DA -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -568,46 +568,33 @@ function capBacRank_(vaiTro){
   return 'nhanvien';
 }
 
-/* ★ Nhóm 3 — PHÂN QUYỀN THEO DỰ ÁN
-   - admin/quanly: thấy mọi dự án
-   - nhanvien: chỉ thấy dự án mà Mã NV mình nằm trong cột "Thành viên" (CSV)
-              hoặc dự án mình làm Phụ trách */
-function visibleProjects(){
-  if(!user) return [];
+/* ★ PHÂN QUYỀN PM (cập nhật):
+   - XEM: mọi nhân sự thấy TẤT CẢ dự án, công việc, chi phí, lịch hẹn.
+   - SỬA/CẬP NHẬT: chỉ người Phụ trách dự án (hoặc Thành viên), hoặc cấp Quản lý/Giám đốc trở lên.
+   canEditProject(d): true nếu user là admin/quanly, hoặc là Phụ trách / Thành viên của dự án đó. */
+function canEditProject(d){
+  if(!user || !d) return false;
   const r = capBacRank_(user['Vai trò']);
-  if(r === 'admin' || r === 'quanly') return S.duan;
+  if(r === 'admin' || r === 'quanly') return true;
   const me = user['Họ tên'] || '', myCode = user['Mã NV'] || '';
-  return S.duan.filter(d => {
-    if((d['Phụ trách']||'') === me) return true;
-    const tv = String(d['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
-    return tv.includes(myCode) || tv.includes(me);
-  });
+  if((d['Phụ trách']||'') === me) return true;
+  const tv = String(d['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
+  return tv.includes(myCode) || tv.includes(me);
 }
+// Quyền sửa 1 công việc: dựa trên dự án chứa nó
+function canEditTask(c){
+  if(!user || !c) return false;
+  const d = S.duan.find(x=>x['Mã DA']===c['Mã DA']);
+  return canEditProject(d);
+}
+
+function visibleProjects(){ return user ? S.duan : []; }
 function visibleProjectCodes(){
-  return new Set(visibleProjects().map(d => d['Mã DA']));
+  return new Set((S.duan||[]).map(d => d['Mã DA']));
 }
-function visibleTasks(){
-  const codes = visibleProjectCodes();
-  const r = user ? capBacRank_(user['Vai trò']) : '';
-  return (r==='admin' || r==='quanly')
-    ? S.congviec
-    : S.congviec.filter(c => codes.has(c['Mã DA']) || (c['Phụ trách']||'') === (user['Họ tên']||''));
-}
-function visibleExpenses(){
-  const codes = visibleProjectCodes();
-  const r = user ? capBacRank_(user['Vai trò']) : '';
-  return (r==='admin' || r==='quanly')
-    ? S.chiphi
-    : S.chiphi.filter(c => codes.has(c['Mã DA']) || (c['Người ghi']||'') === (user['Họ tên']||''));
-}
-function visibleAppointments(){
-  if(!user) return [];
-  const codes = visibleProjectCodes();
-  const r = capBacRank_(user['Vai trò']);
-  if(r==='admin' || r==='quanly') return S.lichhen;
-  const me = user['Họ tên']||'';
-  return S.lichhen.filter(l => codes.has(l['Mã DA']) || String(l['Tham gia (nội bộ)']||'').includes(me));
-}
+function visibleTasks(){ return user ? S.congviec : []; }
+function visibleExpenses(){ return user ? S.chiphi : []; }
+function visibleAppointments(){ return user ? S.lichhen : []; }
 
 /* ★ Nhóm 3 — Zalo deep link (mức 1: dùng được ngay, không cần Zalo OA token)
    - Mobile: zalo://conversation?phone=... mở app Zalo (nếu đã cài)
@@ -1388,7 +1375,9 @@ function openModal(title, bodyHtml, onSave, onDelete){
   const del = document.getElementById('modalDelete');
   del.classList.toggle('hide', !onDelete);
   del.onclick = onDelete || null;
-  document.getElementById('modalSave').onclick = onSave;
+  const saveBtn = document.getElementById('modalSave');
+  saveBtn.classList.toggle('hide', !onSave);   // không có quyền lưu → ẩn nút Lưu (chế độ chỉ xem)
+  saveBtn.onclick = onSave || null;
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
@@ -1407,6 +1396,8 @@ function __updateProjSeedPreview(){
 function formProject(code){
   const d = code ? S.duan.find(x=>x['Mã DA']===code) : null;
   const isNew = !d;
+  const readOnly = !isNew && !canEditProject(d);   // không phụ trách → chỉ xem
+  const roBanner = readOnly ? '<div style="background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:var(--r-sm);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--brass-deep)">👁️ Chế độ chỉ xem — chỉ người phụ trách dự án này mới được sửa.</div>' : '';
   // Multi-select thành viên — checkbox list, lưu CSV Mã NV
   const memberCodes = String(d?.['Thành viên']||'').split(',').map(s=>s.trim()).filter(Boolean);
   const activeStaff = S.nhansu.filter(n => n['Trạng thái']!=='Nghỉ việc');
@@ -1425,7 +1416,8 @@ function formProject(code){
     : '';
   const zaloBtn = (!isNew && d['SĐT khách']) ? ' ' + btnZalo(d['SĐT khách'], 'Nhắn Zalo khách') : '';
   openModal(isNew ? 'Thêm dự án mới' : 'Dự án ' + code,
-    fld('Tên dự án *', inp('pTen', d?.['Tên dự án'],'text','vd: Căn hộ anh Hùng — Vinhomes Huế'))
+    roBanner
+    + fld('Tên dự án *', inp('pTen', d?.['Tên dự án'],'text','vd: Căn hộ anh Hùng — Vinhomes Huế'))
     + '<div class="grid2">'
     + fld('Khách hàng', inp('pKH', d?.['Khách hàng']))
     + fld('SĐT khách' + zaloBtn, inp('pSDT', d?.['SĐT khách'],'tel'))
@@ -1444,7 +1436,8 @@ function formProject(code){
     + fld('Thành viên tham gia <span class="muted">(nhân viên được tick mới thấy dự án này)</span>', memberHtml)
     + fld('Ghi chú', '<textarea id="pGC" rows="2">'+esc(d?.['Ghi chú']||'')+'</textarea>')
     + seedBlock,
-    function save(){
+    readOnly ? null : function save(){
+      if(!isNew && !canEditProject(d)) return toast('Chỉ người phụ trách dự án này mới được sửa', true);
       if(!V('pTen')) return toast('Chưa nhập tên dự án', true);
       const members = Array.from(document.querySelectorAll('.pMember:checked')).map(el=>el.value).join(',');
       const rec = {'Mã DA': code||'', 'Tên dự án':V('pTen'),'Khách hàng':V('pKH'),'SĐT khách':V('pSDT'),
@@ -1473,8 +1466,12 @@ function formProject(code){
 function formTask(code){
   const c = code ? S.congviec.find(x=>x['Mã CV']===code) : null;
   const isNew = !c;
+  const _projC = c ? S.duan.find(x=>x['Mã DA']===c['Mã DA']) : null;
+  const readOnly = !isNew && !canEditProject(_projC);   // không phụ trách dự án → chỉ xem
+  const roBanner = readOnly ? '<div style="background:#FBF4E6;border:1px solid var(--brass-soft);border-radius:var(--r-sm);padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--brass-deep)">👁️ Chế độ chỉ xem — chỉ người phụ trách dự án này mới được cập nhật công việc.</div>' : '';
   openModal(isNew ? 'Giao việc mới' : 'Công việc ' + code,
-    fld('Tên công việc *', inp('tTen', c?.['Tên công việc'],'text','vd: Shop drawing tủ bếp tầng 1'))
+    roBanner
+    + fld('Tên công việc *', inp('tTen', c?.['Tên công việc'],'text','vd: Shop drawing tủ bếp tầng 1'))
     + fld('Thuộc dự án *', selProj('tDA', c?.['Mã DA'] || window._ftp || ''))
     + '<div class="grid2">'
     + fld('Giai đoạn', sel('tGD', GIAI_DOAN, c?.['Giai đoạn']||GIAI_DOAN[1]))
@@ -1491,9 +1488,11 @@ function formTask(code){
     + fld('Người phê duyệt <span class="muted">(QL → GĐ → Tổng GĐ tùy mức độ)</span>', selApprover('tNguoiDuyet', c?.['Người duyệt được giao']))
     + photoSection(c)
     + taskApproveHtml(c, isNew),
-    function save(){
+    readOnly ? null : function save(){
       if(!V('tTen')) return toast('Chưa nhập tên công việc', true);
       if(!V('tDA')) return toast('Chưa chọn dự án', true);
+      const _proj = S.duan.find(x=>x['Mã DA']===V('tDA'));
+      if(!canEditProject(_proj)) return toast('Chỉ người phụ trách dự án này mới được cập nhật công việc', true);
       let tt = V('tTT'), td = Math.max(0, Math.min(100, Number(V('tTD'))||0));
       if(tt==='Hoàn thành') td = 100; else if(td===100) tt='Hoàn thành';
       const nguoiDuyet = V('tNguoiDuyet');
