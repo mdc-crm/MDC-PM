@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- MDC-PM v1.3 — XEM: mọi nhân sự xem hết (bỏ ràng buộc Thành viên). SỬA: chỉ QL trở lên / phụ trách dự án / phụ trách công việc -->
+<!-- MDC-PM v1.4 — thêm Thầu phụ/Đối tác cho công việc (chọn từ DS hoặc gõ mới, 1 thầu phụ/việc, ghi nhận nội bộ). Kèm v1.3: phân quyền xem/sửa -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -808,7 +808,7 @@ function vTasks(){
     const dl = daysLeft(c['Hạn hoàn thành']);
     const hanCls = c['Trạng thái']==='Hoàn thành' ? '' : dl===null ? '' : dl<0 ? 't-bad' : dl<=3 ? 't-warn' : '';
     return '<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')">'
-      + '<td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">'+esc(projName(c['Mã DA']))+(c['Ý kiến chỉ đạo']?' · 💬 có chỉ đạo':'')+(parsePhotos(c['Ảnh']).length?' · 📷 '+parsePhotos(c['Ảnh']).length:'')+'</div></td>'
+      + '<td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">'+esc(projName(c['Mã DA']))+(c['Thầu phụ']?' · ◈ '+esc(c['Thầu phụ']):'')+(c['Ý kiến chỉ đạo']?' · 💬 có chỉ đạo':'')+(parsePhotos(c['Ảnh']).length?' · 📷 '+parsePhotos(c['Ảnh']).length:'')+'</div></td>'
       + '<td>'+esc(c['Phụ trách']||'—')+'</td>'
       + '<td class="muted">'+esc(c['Ngày bắt đầu']||'—')+'</td>'
       + '<td>'+(c['Hạn hoàn thành'] ? (hanCls?'<span class="tag '+hanCls+'">':'')+esc(c['Hạn hoàn thành'])+(hanCls?'</span>':'') : '—')+(c['Ngày hoàn thành']?'<div class="muted" style="font-size:11px">✓ Xong: '+esc(c['Ngày hoàn thành'])+'</div>':'')+'</td>'
@@ -1390,6 +1390,16 @@ function inp(id, val, type, ph){ return '<input id="'+id+'" type="'+(type||'text
 function sel(id, arr, val){ return '<select id="'+id+'">'+opt(arr, val)+'</select>'; }
 function selProj(id, val){ return '<select id="'+id+'"><option value="">— Chọn dự án —</option>'+S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(d['Mã DA']===val?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('')+'</select>'; }
 function selStaff(id, val){ return '<select id="'+id+'"><option value="">— Chọn người —</option>'+S.nhansu.filter(n=>n['Trạng thái']!=='Nghỉ việc').map(n=>'<option'+(n['Họ tên']===val?' selected':'')+'>'+esc(n['Họ tên'])+'</option>').join('')+'</select>'; }
+// Ô thầu phụ/đối tác: input gắn datalist — vừa chọn từ sheet Nhà thầu phụ, vừa gõ tên mới được.
+function inpThauPhu(id, val){
+  const items = (S.thaubo||[]).filter(t => t['Trạng thái']!=='Ngừng hợp tác');
+  const opts = items.map(t => {
+    const ten = t['Tên / Công ty']||''; const loai = t['Loại thầu']?(' — '+t['Loại thầu']):'';
+    return '<option value="'+esc(ten)+'">'+esc(ten+loai)+'</option>';
+  }).join('');
+  return '<input id="'+id+'" list="'+id+'_dl" value="'+esc(val??'')+'" placeholder="Chọn thầu phụ hoặc gõ tên đối tác mới" autocomplete="off">'
+       + '<datalist id="'+id+'_dl">'+opts+'</datalist>';
+}
 function V(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
 /* ----- Dự án ----- */
@@ -1480,6 +1490,7 @@ function formTask(code){
     + '<div class="grid2">'
     + fld('Giai đoạn', sel('tGD', GIAI_DOAN, c?.['Giai đoạn']||GIAI_DOAN[1]))
     + fld('Phụ trách', selStaff('tPT', c?.['Phụ trách']||user['Họ tên']))
+    + fld('Thầu phụ / Đối tác <span class="muted">(chọn hoặc gõ tên mới)</span>', inpThauPhu('tTP', c?.['Thầu phụ']||''))
     + fld('Ngày bắt đầu', inp('tBD', c?.['Ngày bắt đầu'],'date'))
     + fld('Hạn hoàn thành', inp('tHan', c?.['Hạn hoàn thành'],'date'))
     + fld('Ngày hoàn thành thực tế', inp('tHT', c?.['Ngày hoàn thành'],'date'))
@@ -1506,7 +1517,7 @@ function formTask(code){
       if(tt==='Hoàn thành' && !ngayHT) ngayHT = today(); // tự điền ngày hoàn thành khi đóng việc
       if(tt!=='Hoàn thành') ngayHT = V('tHT'); // giữ nếu user tự nhập, không ép xóa
       const rec = {'Mã CV': code||'','Mã DA':V('tDA'),'Tên công việc':V('tTen'),'Giai đoạn':V('tGD'),
-        'Phụ trách':V('tPT'),'Ngày bắt đầu':V('tBD'),'Hạn hoàn thành':V('tHan'),'Ngày hoàn thành':ngayHT,
+        'Phụ trách':V('tPT'),'Thầu phụ':V('tTP'),'Ngày bắt đầu':V('tBD'),'Hạn hoàn thành':V('tHan'),'Ngày hoàn thành':ngayHT,
         'Ưu tiên':V('tUT'),'Trạng thái':tt,'Tiến độ (%)':td,'Ghi chú':V('tGC')};
       rec['Người duyệt được giao'] = nguoiDuyet;
       rec['Ảnh'] = JSON.stringify(window.__photos || []);
