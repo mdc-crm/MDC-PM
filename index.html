@@ -907,7 +907,9 @@ let S = {
   hdthauphu:[],   // v2.4 — hợp đồng thầu phụ (1 thầu phụ × 1 dự án = 1 HĐ, nhiều đợt)
   tamung:[],      // v2.6 — tạm ứng (nhân viên / thầu phụ / NCC) và hoàn ứng
   thukhac:[],     // v2.6 — thu khác & vốn (góp vốn, vay, lãi, thanh lý…)
-  danhgiaTP:[]    // v2.7 — phiếu đánh giá xét chọn nhà thầu (250 điểm)
+  danhgiaTP:[],   // v2.7 — phiếu đánh giá xét chọn nhà thầu (250 điểm)
+  // ★ v5.0 — HÀNH TRÌNH KHÁCH HÀNG do CRM tạo (PM chỉ đọc)
+  baogia:[], khaosat:[], lichsulv:[], hopdongKH:[]
 };
 let user = null, currentView = 'dashboard', filterProj = '';
 
@@ -1132,6 +1134,10 @@ async function syncAll(manual){
       S.tamung     = j.tamung    ||S.tamung    ||[];
       S.thukhac    = j.thukhac   ||S.thukhac   ||[];
       S.danhgiaTP  = j.danhgiaTP ||S.danhgiaTP ||[];
+      S.baogia     = j.baogia    ||S.baogia    ||[];
+      S.khaosat    = j.khaosat   ||S.khaosat   ||[];
+      S.lichsulv   = j.lichsulv  ||S.lichsulv  ||[];
+      S.hopdongKH  = j.hopdongKH ||S.hopdongKH ||[];
       store.saveState();
       setSync('ok','Đồng bộ ' + new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}));
       if(user) render();
@@ -3480,19 +3486,43 @@ function vCustomers(){
     + kpi('Đã thành dự án', all.filter(l=>l.maDA).length, 'Đang theo dõi PM')
     + kpi('Chờ chuyển', all.filter(l=>l.ready&&!l.maDA).length, 'Cần xử lý', all.filter(l=>l.ready&&!l.maDA).length?'bad':'')
     + '</div>';
-  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã KH</th><th>Tên</th><th>SĐT</th><th>Khu vực</th><th>Loại CT</th><th>Giá trị</th><th>Trạng thái CRM</th><th>Dự án PM</th></tr></thead><tbody>';
-  html += list.length ? list.map(l =>
-    '<tr class="row-click" onclick="'+(l.maDA?'go(\'duan\')':l.ready?'formConvertLead(\''+l.code+'\')':'void(0)')+'">'
-    + '<td class="muted">'+esc(l.code)+'</td>'
-    + '<td><b>'+esc(l.ten||'—')+'</b></td>'
-    + '<td>'+esc(l.sdt||'—')+(l.sdt?'<br>'+btnZalo(l.sdt,''):'')+'</td>'
-    + '<td class="muted">'+esc(l.diachi||'—')+'</td>'
-    + '<td>'+esc(l.loaiCT||'—')+'</td>'
-    + '<td class="num">'+fmtTr(l.giatri||0)+'</td>'
+  // ★ v5.0 — dữ liệu hành trình từ CRM
+  const soHD = (S.hopdongKH||[]).length;
+  const dotChoDA = (S.thanhtoan||[]).filter(x=>x['Mã KH'] && !x['Mã DA']);
+  if(soHD || dotChoDA.length){
+    html += '<div class="kpis">'
+      + kpi('Hợp đồng đã ký (CRM)', soHD, 'Có bản scan lưu hồ sơ','accent')
+      + kpi('Báo giá đang chạy', (S.baogia||[]).filter(b=>b['Trạng thái']!=='Đã thay thế'&&b['Trạng thái']!=='Từ chối').length, 'Mọi phiên bản mới nhất')
+      + kpi('Đợt thu chờ gắn dự án', dotChoDA.length,
+          dotChoDA.length?fmtTr(dotChoDA.reduce((a,x)=>a+(Number(x['Giá trị (đ)'])||0),0))+' — tự gắn khi tạo dự án':'Đã gắn hết',
+          dotChoDA.length?'bad':'ok')
+      + kpi('Khảo sát hiện trạng', (S.khaosat||[]).length, 'Dùng khi lập BOQ')
+      + '</div>';
+  }
+  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Khách hàng</th><th>Hành trình</th><th>Báo giá</th><th>Hợp đồng</th><th class="num">Đợt thu</th><th>Trạng thái CRM</th><th>Dự án PM</th></tr></thead><tbody>';
+  html += list.length ? list.map(l => {
+    const H = khHanhTrinh(l);
+    const hd = H.hd[0];
+    const dot = (S.thanhtoan||[]).filter(x=>String(x['Mã KH'])===String(l.code));
+    const thu = dot.reduce((a,x)=>a+(Number(x['Đã thu (đ)'])||0),0);
+    const tongDot = dot.reduce((a,x)=>a+(Number(x['Giá trị (đ)'])||0),0);
+    return '<tr class="row-click" onclick="khMoHoSo(\''+esc(l.code)+'\')">'
+    + '<td><b>'+esc(l.ten||'—')+'</b><div class="muted">'+esc(l.sdt||'')
+      + (l.sdt?' '+btnZalo(l.sdt,''):'')+(l.diachi?' · '+esc(l.diachi):'')+'</div></td>'
+    + '<td><div style="display:flex;align-items:center;gap:6px">'
+      + '<div class="bar" style="width:52px"><i style="width:'+Math.round(H.soXong/9*100)+'%"></i></div>'
+      + '<span style="font-size:11.5px;font-weight:700;white-space:nowrap">'+H.soXong+'/9</span></div></td>'
+    + '<td>'+(H.bgMoi?'<span class="vchip">v'+(H.bgMoi['Phiên bản']||1)+'</span> '+fmtTr(Number(H.bgMoi['Giá trị (đ)'])||0)
+        +'<div class="muted" style="font-size:10.5px">'+esc(H.bgMoi['Trạng thái']||'')+'</div>'
+        :'<span class="muted">—</span>')+'</td>'
+    + '<td>'+(hd?'<b>'+fmtTr(Number(hd['Giá trị (đ)'])||0)+'</b><div class="muted" style="font-size:10.5px">'
+        +esc(hd['Số HĐ']||'')+' · '+esc(hd['Ngày ký']||'')+'</div>'
+        :(l.ready?'<span class="tag t-warn">đã ký, chưa khai</span>':'<span class="muted">—</span>'))+'</td>'
+    + '<td class="num">'+(dot.length?dot.length+' đợt<div class="muted" style="font-size:10.5px">thu '+fmtTr(thu)+'/'+fmtTr(tongDot)+'</div>':'<span class="muted">—</span>')+'</td>'
     + '<td>'+tagTT(l.trangthai)+'</td>'
     + '<td>'+(l.maDA?'<span class="tag t-ok">'+esc(l.maDA)+'</span>':l.ready?'<button class="btn btn-brass" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();formConvertLead(\''+l.code+'\')">Chuyển →</button>':'<span class="muted">—</span>')+'</td>'
-    + '</tr>'
-  ).join('') : '<tr><td colspan="8"><div class="empty">Không có kết quả</div></td></tr>';
+    + '</tr>';
+  }).join('') : '<tr><td colspan="7"><div class="empty">Không có kết quả</div></td></tr>';
   html += '</tbody></table></div></div></div>';
   return html;
 }
@@ -6964,6 +6994,135 @@ function fixThemTP(){
       apiBatch(ops).then(j=>{ if(j.ok){ setSync('ok','Đã lưu'); syncAll(false);} })
         .catch(()=>{ const p=store.pending; ops.forEach(o=>p.push(o)); store.pending=p; });
     });
+}
+
+
+/* ================================================================
+   ★ PM v5.0 — HỒ SƠ KHÁCH HÀNG TỪ CRM
+   Quản lý dự án xem được: báo giá · khảo sát · hợp đồng · đợt thu
+   · lịch sử làm việc — tất cả do đội kinh doanh nhập bên CRM.
+   PM CHỈ ĐỌC: mọi thay đổi phải làm ở CRM để tránh hai nguồn sự thật.
+================================================================ */
+function khOf(kho, maKH){ return (S[kho]||[]).filter(x=>String(x['Mã KH'])===String(maKH)); }
+
+/* Tính tiến độ hành trình 9 bước — cùng công thức với CRM */
+function khHanhTrinh(lead){
+  const bg = khOf('baogia', lead.code), ks = khOf('khaosat', lead.code),
+        ls = khOf('lichsulv', lead.code), hd = khOf('hopdongKH', lead.code);
+  const co = tt => bg.some(b=>b['Trạng thái']===tt);
+  const xong = {
+    'Tiếp nhận':true, 'Liên hệ':ls.length>0, 'Khảo sát':ks.length>0, 'Lập báo giá':bg.length>0,
+    'Duyệt nội bộ':co('Đã duyệt')||co('Đã gửi khách')||co('Khách chấp thuận'),
+    'Gửi khách':co('Đã gửi khách')||co('Khách chấp thuận'),
+    'KH chấp thuận':co('Khách chấp thuận'), 'Ký hợp đồng':hd.length>0, 'Tạo dự án':!!lead.maDA
+  };
+  return {xong, soXong:Object.values(xong).filter(Boolean).length, bg, ks, ls, hd,
+    bgMoi: bg.filter(b=>b['Trạng thái']!=='Đã thay thế')
+             .sort((a,b)=>(Number(b['Phiên bản'])||0)-(Number(a['Phiên bản'])||0))[0]||null};
+}
+
+/* Mở hồ sơ đầy đủ của một khách hàng */
+function khMoHoSo(maKH){
+  const lead = (S.leads||[]).find(l=>String(l.code)===String(maKH));
+  if(!lead) return toast('Không tìm thấy khách hàng', true);
+  const H = khHanhTrinh(lead);
+  const dot = (S.thanhtoan||[]).filter(x=>String(x['Mã KH'])===String(maKH));
+  const hd = H.hd[0];
+
+  let h = '<div class="tv-hint" style="background:var(--paper);color:var(--ink);line-height:1.7">'
+    + '<b style="font-size:15px">'+esc(lead.ten||'')+'</b>'
+    + (lead.maDA?' <span class="tag t-ok">'+esc(lead.maDA)+'</span>':'')
+    + '<br>📱 '+esc(lead.sdt||'—')
+    + (lead.diachi?' · 📍 '+esc(lead.diachi):'')
+    + (lead.loaiCT?' · '+esc(lead.loaiCT):'')
+    + '<br><span class="muted">Phụ trách kinh doanh: <b>'+esc(lead.phutrach||'—')+'</b>'
+    + ' · Trạng thái CRM: '+esc(lead.trangthai||'—')+'</span></div>';
+
+  /* Thanh hành trình */
+  h += '<div class="section-label">Hành trình bán hàng ('+H.soXong+'/9)</div>'
+    + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">'
+    + Object.keys(H.xong).map(k=>'<span class="tag '+(H.xong[k]?'t-ok':'t-pause')+'" style="font-size:10.5px">'
+        + (H.xong[k]?'✓ ':'○ ')+esc(k)+'</span>').join('')
+    + '</div>';
+
+  /* Hợp đồng */
+  h += '<div class="section-label">Hợp đồng</div>';
+  if(hd){
+    h += '<div class="card" style="margin-bottom:10px"><div class="card-body">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+      + '<div><b>'+esc(hd['Số HĐ']||'Hợp đồng')+'</b>'
+      + '<div class="muted">Ký ngày '+esc(hd['Ngày ký']||'—')+(hd['Người ký']?' · '+esc(hd['Người ký']):'')+'</div></div>'
+      + '<div style="text-align:right"><b style="font-size:17px">'+fmtTr(Number(hd['Giá trị (đ)'])||0)+'</b>'
+      + (hd['File scan']?'<div><a href="'+esc(hd['File scan'])+'" target="_blank" class="lk" style="font-size:11.5px">📎 Xem bản scan</a></div>':'')
+      + '</div></div></div></div>';
+  } else h += '<div class="empty" style="padding:14px">Chưa ký hợp đồng</div>';
+
+  /* Đợt thanh toán */
+  h += '<div class="section-label">Đợt thanh toán theo hợp đồng ('+dot.length+')</div>';
+  if(dot.length){
+    const tong = dot.reduce((a,x)=>a+(Number(x['Giá trị (đ)'])||0),0);
+    const thu  = dot.reduce((a,x)=>a+(Number(x['Đã thu (đ)'])||0),0);
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Đợt</th><th>Đến hạn</th>'
+      + '<th class="num">%</th><th class="num">Giá trị</th><th class="num">Đã thu</th><th>Gắn dự án</th></tr></thead><tbody>'
+      + [...dot].sort((a,b)=>(a['Ngày đến hạn']||'')>(b['Ngày đến hạn']||'')?1:-1).map(x=>{
+          const v=Number(x['Giá trị (đ)'])||0, t=Number(x['Đã thu (đ)'])||0;
+          return '<tr><td><b>'+esc(x['Tên đợt']||'')+'</b></td>'
+            + '<td class="muted">'+esc(x['Ngày đến hạn']||'—')+'</td>'
+            + '<td class="num muted">'+(x['% giá trị HĐ']||'')+'%</td>'
+            + '<td class="num">'+fmt(v)+'</td>'
+            + '<td class="num" style="color:var(--ok)">'+(t?fmt(t):'–')+'</td>'
+            + '<td>'+(x['Mã DA']?'<span class="tag t-ok">'+esc(x['Mã DA'])+'</span>'
+                :'<span class="tag t-warn">chờ tạo dự án</span>')+'</td></tr>';
+        }).join('')
+      + '</tbody></table></div>'
+      + '<div class="fin-total"><span class="ft-lbl">Tổng '+dot.length+' đợt · đã thu '+fmtTr(thu)+'</span>'
+      + '<span class="ft-val">'+fmtTr(tong)+'</span></div>';
+  } else h += '<div class="empty" style="padding:14px">Chưa khai đợt thanh toán ở CRM</div>';
+
+  /* Báo giá */
+  h += '<div class="section-label">Báo giá ('+H.bg.length+')</div>';
+  if(H.bg.length){
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phiên bản</th><th>Tiêu đề</th>'
+      + '<th class="num">Giá trị</th><th>Trạng thái</th><th>Ngày lập</th><th>File</th></tr></thead><tbody>'
+      + [...H.bg].sort((a,b)=>(Number(b['Phiên bản'])||0)-(Number(a['Phiên bản'])||0)).map(x=>
+          '<tr><td><span class="vchip">v'+(x['Phiên bản']||1)+'</span></td>'
+          + '<td><b>'+esc(x['Tiêu đề']||'')+'</b></td>'
+          + '<td class="num">'+fmt(x['Giá trị (đ)'])+'</td>'
+          + '<td>'+tagTT(x['Trạng thái'])+'</td>'
+          + '<td class="muted">'+esc(x['Ngày lập']||'—')+'</td>'
+          + '<td>'+(x['File']?'<a href="'+esc(x['File'])+'" target="_blank" class="lk">📎 Mở</a>':'—')+'</td></tr>').join('')
+      + '</tbody></table></div>';
+  } else h += '<div class="empty" style="padding:14px">Chưa có báo giá</div>';
+
+  /* Khảo sát */
+  h += '<div class="section-label">Khảo sát hiện trạng ('+H.ks.length+')</div>';
+  if(H.ks.length){
+    h += H.ks.map(x=>'<div class="card" style="margin-bottom:7px"><div class="card-body">'
+      + '<b>📍 '+esc(x['Địa chỉ']||'—')+'</b>'
+      + '<div class="muted">'+esc(x['Ngày']||'')+' · '+(x['Diện tích (m2)']||0)+' m²'
+      + (x['Người khảo sát']?' · '+esc(x['Người khảo sát']):'')+'</div>'
+      + (x['Nhu cầu']?'<p style="font-size:13px;margin-top:5px">'+esc(x['Nhu cầu'])+'</p>':'')
+      + (x['GPS']?'<a href="'+esc(x['GPS'])+'" target="_blank" class="lk" style="font-size:11.5px">◈ Mở GPS</a>':'')
+      + '</div></div>').join('');
+  } else h += '<div class="empty" style="padding:14px">Chưa khảo sát</div>';
+
+  /* Lịch sử làm việc */
+  h += '<div class="section-label">Lịch sử làm việc với khách ('+H.ls.length+')</div>';
+  if(H.ls.length){
+    h += '<div style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px">'
+      + [...H.ls].sort((a,b)=>(b['Thời gian']||'')>(a['Thời gian']||'')?1:-1).map(x=>
+          '<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px">'
+          + '<b>'+esc(x['Loại']||'Ghi chú')+':</b> '+esc(x['Nội dung']||'')
+          + '<div class="muted" style="font-size:10.5px">'+esc(x['Thời gian']||'')
+          + (x['Người ghi']?' · '+esc(x['Người ghi']):'')+'</div></div>').join('')
+      + '</div>';
+  } else h += '<div class="empty" style="padding:14px">Chưa có ghi nhận</div>';
+
+  h += '<div class="rule" style="margin-top:12px">Dữ liệu trên do đội kinh doanh nhập ở <b>MDC-CRM</b>. '
+    + 'PM chỉ đọc để tránh hai nguồn sự thật — cần sửa thì báo người phụ trách '
+    + '<b>'+esc(lead.phutrach||'')+'</b> cập nhật bên CRM.</div>';
+
+  openModal('Hồ sơ khách hàng — '+(lead.ten||''), h, null);
 }
 
 </script>
