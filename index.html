@@ -8,7 +8,7 @@
 <title>MDC-PM · Quản lý dự án</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --wood-900:#241B14; --wood-800:#2B211A; --wood-700:#3D2E22; --wood-600:#54402F;
@@ -19,6 +19,7 @@
   --bad:#C0392B; --bad-bg:#F9E7E4; --info:#2C6E9E; --info-bg:#E5EFF6;
   --pause:#6E6457; --pause-bg:#EFECE6;
   --r:12px; --r-sm:8px;
+  --serif:'Cormorant Garamond',Georgia,serif;
   --shadow:0 1px 2px rgba(43,33,26,.06),0 4px 14px rgba(43,33,26,.07);
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -35,7 +36,7 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .login-card{width:100%;max-width:380px;background:var(--card);border-radius:18px;padding:36px 32px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
 .login-mark{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .mark-block{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--wood-700),var(--wood-900));display:flex;align-items:center;justify-content:center;color:var(--brass);font-weight:800;font-size:17px;letter-spacing:.5px;border:1px solid var(--wood-600)}
-.login-card h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
+.login-card h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:.2px}
 .login-card .sub{color:var(--ink-soft);font-size:12.5px;margin-bottom:24px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
@@ -73,7 +74,7 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .side-user span{color:#9C9182;font-size:11px}
 .main{margin-left:228px;padding:24px 28px 90px;max-width:1180px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
-.topbar h2{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.topbar h2{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.2px;color:var(--wood-900)}
 .topbar .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sync-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);padding:6px 11px;border-radius:99px}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
@@ -152,12 +153,37 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 @media(max-width:860px){
   .sidebar{display:none}
   .main{margin-left:0;padding:16px 14px 96px}
-  .topbar h2{font-size:19px}
-  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--wood-800);z-index:60;padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;border-top:1px solid var(--wood-700)}
-  .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;color:#9C9182;font-size:10px;font-weight:600;border-radius:9px;max-width:90px}
+  .topbar h2{font-size:23px}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:rgba(43,33,26,.97);backdrop-filter:blur(12px);z-index:60;padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;border-top:1px solid var(--wood-700)}
+  .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;color:#9C9182;font-size:10px;font-weight:600;border-radius:9px;max-width:90px;min-height:48px;justify-content:center;position:relative}
   .bottom-nav button.active{color:var(--brass)}
+  .bottom-nav button.active::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;border-radius:0 0 4px 4px;background:linear-gradient(90deg,var(--brass),#CBA25A)}
   .tbl-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
   .kpi .val{font-size:20px}
+
+  /* — Cỡ chữ & vùng chạm cho công trường — */
+  body,td,th,input,select,textarea,button{font-size:13.5px}
+  .btn{min-height:40px;padding:9px 14px}
+  .icon-btn{width:38px;height:38px}
+
+  /* — BẢNG → THẺ trên điện thoại — */
+  table.tbl-mb{width:100%;min-width:0!important;border-collapse:separate;border-spacing:0}
+  table.tbl-mb thead{display:none}
+  table.tbl-mb tbody,table.tbl-mb tr,table.tbl-mb td{display:block;width:auto}
+  table.tbl-mb tr{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:9px;box-shadow:var(--shadow)}
+  table.tbl-mb td{border:none!important;padding:4px 0!important;display:flex;align-items:flex-start;gap:10px;text-align:left!important}
+  table.tbl-mb td::before{content:attr(data-label);flex:none;width:92px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-faint);padding-top:2px}
+  table.tbl-mb td:first-child{padding-bottom:8px!important;margin-bottom:6px;border-bottom:1px solid var(--line)!important}
+  table.tbl-mb td:first-child::before{display:none}
+  table.tbl-mb td:first-child>*{font-size:15px}
+  table.tbl-mb .tbl-wrap,.tbl-wrap:has(table.tbl-mb){overflow-x:visible!important;margin:0!important;padding:0!important}
+
+  /* — Modal kiểu bottom-sheet — */
+  .modal-bg{align-items:flex-end!important}
+  .modal{width:100%!important;max-width:100%!important;max-height:94vh!important;border-radius:16px 16px 0 0!important;margin:0!important}
+
+  /* — Project tabs cuộn ngang mượt — */
+  .pj-tabs{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch}
 }
 .tbl-wrap{overflow-x:auto}
 .hide{display:none!important}
@@ -1411,7 +1437,27 @@ function render(){
     duanDetail:vProjectDetail
   }[currentView];
   root.innerHTML = fn ? fn() : '<div class="empty">Màn hình đang phát triển</div>';
+  try { napBangDienThoai_(); } catch(e){}
 }
+
+// ★ CHUẨN HÓA MOBILE: biến bảng thành thẻ trên điện thoại (thêm class tbl-mb + data-label)
+function napBangDienThoai_(){
+  if(window.innerWidth > 860) return;
+  document.querySelectorAll('#viewRoot table').forEach(function(tb){
+    if(tb.classList.contains('gantt')) return;      // Gantt giữ nguyên cuộn ngang
+    var ths = tb.querySelectorAll('thead th');
+    if(!ths.length) return;
+    var labels = Array.prototype.map.call(ths, function(th){ return th.textContent.trim(); });
+    tb.classList.add('tbl-mb');
+    tb.querySelectorAll('tbody tr').forEach(function(tr){
+      Array.prototype.forEach.call(tr.children, function(td, i){
+        if(labels[i] && !td.getAttribute('data-label')) td.setAttribute('data-label', labels[i]);
+      });
+    });
+  });
+}
+// Chạy lại khi xoay/đổi kích thước màn hình
+window.addEventListener('resize', function(){ try{ napBangDienThoai_(); }catch(e){} });
 
 /* ---------- Trang Tổng quan ---------- */
 /* ================================================================
