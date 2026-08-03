@@ -700,10 +700,11 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
    3. Ghi offline xếp hàng đợi (pending) → tự đẩy lại khi có mạng
 ================================================================ */
 
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzVMYIh9fgmNo3omy9b0xL4OAKoQt7EZJ1jTgXTDlE1JzgRRGORVeZgshODS5Smpw4S/exec'; // ★ v4.0 — URL HỢP NHẤT CRM+PM (dùng chung với MDC-CRM)
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbxamtecKswoDZh4kX1xTlco_-319E4dKEOBjrLwpjS541HVI-kW1AxNsquLBdMJ55gk/exec'; // ★ v5 — URL HỢP NHẤT CRM+PM (deployment mới, có verifyLogin + self-heal)
 // Danh sách URL backend đã ngừng dùng — tự dọn khỏi localStorage của MỌI thiết bị,
 // kể cả khi người dùng từng tự sửa URL (cờ mdcpm_api_custom). Chống lỗi 'máy này chạy máy kia không'.
 const OBSOLETE_APIS = [
+  'https://script.google.com/macros/s/AKfycbzVMYIh9fgmNo3omy9b0xL4OAKoQt7EZJ1jTgXTDlE1JzgRRGORVeZgshODS5Smpw4S/exec',
   'https://script.google.com/macros/s/AKfycbwOXa-vW-mHzcA2zMGVAfKTlILmCRf7-JBMRANNC6iIMiqxKB80NGpoEqzLZQzfSRK6fw/exec',
   'https://script.google.com/macros/s/AKfycbxM4zH__z_qF5NxFxlv5RfqrHeXJSVgLjKXUblfKeN3-dvlfJMwMMmklVW2kCoydB_FEw/exec'
 ];
@@ -1202,7 +1203,10 @@ function pushOp(action, data){
         else if('Mã CV' in ref) ref['Mã CV'] = j.code;
         else ref.code = j.code;
       }
-      setSync('ok','Đã lưu lên Sheets'); syncAll(false);
+      setSync('ok','Đã lưu lên Sheets');
+      // KHÔNG syncAll ngay: getAll đọc sớm có thể chưa thấy bản ghi vừa lưu (nhất là
+      // hạng mục/kế hoạch) và ghi đè làm mất dữ liệu local vừa tạo. Trạng thái local
+      // đã đúng; đồng bộ định kỳ hoặc mở lại app sẽ tự khớp với Sheets.
       return;
     }
     // Lỗi logic — kiểm tra có fallback không
@@ -6369,7 +6373,14 @@ function tvApply(daCode, picked, startStr, skipSun){
   store.saveState(); render();
   toast('✓ Đã tạo '+nHM+' hạng mục · '+nCV+' đầu việc — đang gửi lên Sheets…');
   apiBatch(ops).then(j=>{
-    if(j.ok){ setSync('ok','Đã lưu kế hoạch lên Sheets'); syncAll(false); }
+    if(j.ok){
+      // Kiểm tra thật sự đã lưu chưa (đếm kết quả saveHangMuc thành công)
+      const okHM = (j.results||[]).filter(r=>r&&r.ok).length;
+      setSync('ok','Đã lưu kế hoạch lên Sheets ('+okHM+' mục)');
+      // ⚠️ KHÔNG gọi syncAll ngay — tránh việc getAll đọc sớm (chưa kịp cập nhật)
+      //   ghi đè & làm biến mất kế hoạch vừa tạo. Trạng thái local đã đúng và đã hiển thị.
+      //   Lần đồng bộ định kỳ / mở lại sau sẽ tự khớp với Sheets.
+    }
     else { toast('Server báo lỗi: '+(j.error||'?')+' — kiểm tra backend đã có saveHangMuc chưa', true); }
   }).catch(()=>{
     const pend = store.pending; ops.forEach(o=>pend.push(o)); store.pending = pend;
