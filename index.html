@@ -2927,22 +2927,27 @@ function photoSection(c){
     + '<label class="btn btn-ghost" style="flex:1;cursor:pointer">📷 Ảnh<input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(this)"></label>'
     + '<label class="btn btn-ghost" style="flex:1;cursor:pointer">📎 File / chứng từ<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf" multiple style="display:none" onchange="addFiles(this)"></label>'
     + '</div>'
+    + '<div style="display:flex;gap:8px;margin-bottom:6px">'
+    + '<button type="button" class="btn btn-ghost" style="flex:1" onclick="attachDriveLink()">🔗 Đính link Drive <span class="muted" style="font-weight:400">(file lớn / CAD / video)</span></button>'
+    + '</div>'
+    + '<div class="muted" style="margin-bottom:8px;font-size:11.5px">Ảnh tự động nén. File ≤35MB tải trực tiếp. File lớn hơn: tải lên Google Drive rồi dán link vào đây.</div>'
     + '<div class="muted" id="photoStatus" style="margin-bottom:10px"></div>';
 }
 function photoThumbs(){
   return (window.__photos||[]).map(function(p,i){
     // p có thể là string (ID ảnh) hoặc object {id,name,doc:true} cho file tài liệu
     const isDoc = p && typeof p === 'object' && p.doc;
+    const isLink = p && typeof p === 'object' && p.link;
     const id = isDoc ? p.id : p;
-    const url = 'https://drive.google.com/file/d/'+esc(id)+'/view';
+    const url = isLink ? p.link : ('https://drive.google.com/file/d/'+esc(id)+'/view');
     if(isDoc){
       const nm = p.name || 'Tài liệu';
       const ext = (nm.split('.').pop()||'').toUpperCase();
-      const icon = /PDF/.test(ext)?'📄':/(DOC|DOCX)/.test(ext)?'📝':/(XLS|XLSX|CSV)/.test(ext)?'📊':'📎';
-      return '<div class="photo-thumb doc-thumb" onclick="window.open(\''+url+'\',\'_blank\')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--paper);cursor:pointer;padding:6px;text-align:center">'
+      const icon = isLink?'🔗':/PDF/.test(ext)?'📄':/(DOC|DOCX)/.test(ext)?'📝':/(XLS|XLSX|CSV)/.test(ext)?'📊':'📎';
+      return '<div class="photo-thumb doc-thumb" onclick="window.open(\''+esc(url)+'\',\'_blank\')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--paper);cursor:pointer;padding:6px;text-align:center">'
         + '<div style="font-size:26px">'+icon+'</div>'
         + '<div style="font-size:9.5px;color:var(--ink-soft);word-break:break-all;line-height:1.2;max-height:24px;overflow:hidden">'+esc(nm)+'</div>'
-        + '<button type="button" title="Gỡ file" onclick="event.stopPropagation();removePhoto('+i+')">✕</button></div>';
+        + '<button type="button" title="Gỡ" onclick="event.stopPropagation();removePhoto('+i+')">✕</button></div>';
     }
     return '<div class="photo-thumb"><img src="https://drive.google.com/thumbnail?id='+esc(id)+'&sz=w400" loading="lazy" alt="Ảnh '+(i+1)+'" onclick="window.open(\''+url+'\',\'_blank\')">' 
       + '<button type="button" title="Gỡ ảnh" onclick="removePhoto('+i+')">✕</button></div>';
@@ -2975,7 +2980,10 @@ async function addFiles(input){
   const st = document.getElementById('photoStatus');
   for(let i=0; i<files.length; i++){
     const f = files[i];
-    if(f.size > 8*1024*1024){ toast('File "'+f.name+'" quá lớn (>8MB), bỏ qua', true); continue; }
+    if(f.size > 35*1024*1024){
+      toast('File "'+f.name+'" nặng '+(f.size/1048576).toFixed(1)+'MB (>35MB). File lớn nên tải thẳng lên Google Drive rồi dán link — bấm "🔗 Đính link Drive".', true);
+      continue;
+    }
     if(st) st.textContent = 'Đang tải file ' + (i+1) + '/' + files.length + '… (' + f.name + ')';
     try{
       const b64 = await fileToBase64(f);
@@ -2986,6 +2994,20 @@ async function addFiles(input){
     }catch(e){ toast('Tải file thất bại (cần có mạng): ' + e.message, true); break; }
   }
   if(st) st.textContent = '';
+}
+
+// Đính kèm bằng LINK (Google Drive/OneDrive/URL bất kỳ) — không giới hạn dung lượng.
+// Dùng cho file lớn: bản vẽ CAD, video, PDF nặng. Chỉ lưu link, không tải file lên.
+function attachDriveLink(){
+  const url = prompt('Dán link file (Google Drive, OneDrive, hoặc URL bất kỳ):');
+  if(!url) return;
+  const u = url.trim();
+  if(!/^https?:\/\//i.test(u)){ toast('Link phải bắt đầu bằng http:// hoặc https://', true); return; }
+  let name = prompt('Tên hiển thị cho file này (vd: Bản vẽ kết cấu tầng 2.dwg):', '');
+  name = (name||'').trim() || 'Link đính kèm';
+  (window.__photos = window.__photos || []).push({ link: u, name: name, doc: true });
+  const g = document.getElementById('photoGrid'); if(g) g.innerHTML = photoThumbs();
+  toast('✓ Đã đính link: ' + name);
 }
 
 // Đọc file bất kỳ → base64 (bỏ tiền tố data:...;base64,)
