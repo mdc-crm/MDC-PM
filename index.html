@@ -1934,6 +1934,7 @@ function formPayment(code){
     + fld('Tên đợt thanh toán *','<input id="ptTen" list="ptTen_dl" value="'+esc(x?.['Tên đợt']||'')+'" placeholder="Chọn mốc chuẩn hoặc gõ tên đợt">'
       + '<datalist id="ptTen_dl">'+MOC_TT.map(m=>'<option value="'+esc(m)+'">').join('')+'</datalist>')
     + '<div class="grid2">'
+    + fld('Thuộc HĐ', sel('ptLoaiHD', ['Thiết kế','Thi công'], x?.['Loại HĐ']||'Thi công'))
     + fld('Loại đợt', sel('ptLoai', LOAI_DOT, x?.['Loại đợt']||'Theo tiến độ'))
     + fld('% giá trị HĐ', inp('ptPct', x?.['% giá trị HĐ']||'', 'number'))
     + fld('Giá trị đợt (đ) *', inp('ptGT', gt||'', 'number'))
@@ -1954,7 +1955,7 @@ function formPayment(code){
       if(t > g) return toast('Đã thu không được lớn hơn giá trị đợt', true);
       let tt = V('ptTT');
       if(t>=g && g>0) tt='Đã thu đủ'; else if(t>0) tt='Đã thu một phần';
-      const rec = {'Mã TT':code||'','Mã DA':V('ptDA'),'Tên đợt':V('ptTen'),
+      const rec = {'Mã TT':code||'','Mã DA':V('ptDA'),'Loại HĐ':V('ptLoaiHD')||'Thi công','Tên đợt':V('ptTen'),
         'Loại đợt':V('ptLoai'),'% giá trị HĐ':Number(V('ptPct'))||0,
         'Giá trị (đ)':g,'Ngày đến hạn':V('ptHan'),'Đã thu (đ)':t,
         'Ngày thu':V('ptNgayThu')||(t>0?today():''),'Trạng thái':tt,
@@ -3182,7 +3183,8 @@ function formConvertLead(code){
     + fld('Địa chỉ công trình', inp('cvDC', l.diachi))
     + '<div class="grid2">'
     + fld('Loại hình <span class="muted">(quyết định bộ việc mẫu)</span>', sel('cvLH', LOAI_HINH, leadGuessLoai(l)).replace('<select id="cvLH"', '<select id="cvLH" onchange="__updateSeedPreview()"'))
-    + fld('Giá trị HĐ (đ)', inp('cvHD', Number(l.giatri) || '', 'number'))
+    + fld('Giá trị HĐ Thiết kế (đ)', inp('cvHDTK', Number(l.giatriTK) || '', 'number'))
+    + fld('Giá trị HĐ Thi công (đ)', inp('cvHDTC', Number(l.giatriTC) || '', 'number'))
     + fld('Ngân sách chi phí (đ)', inp('cvNS', '', 'number'))
     + fld('Ngày bắt đầu', inp('cvBD', today(), 'date'))
     + fld('Phụ trách triển khai', selStaff('cvPT', ''))
@@ -3199,7 +3201,9 @@ function formConvertLead(code){
         'Mã DA': tempCode('DA', S.duan, 'Mã DA'),
         'Tên dự án': V('cvTen'), 'Khách hàng': V('cvKH'), 'SĐT khách': V('cvSDT'),
         'Địa chỉ công trình': V('cvDC'), 'Loại hình': V('cvLH'),
-        'Giai đoạn': GIAI_DOAN[0], 'Ngân sách (đ)': V('cvNS'), 'Giá trị HĐ (đ)': V('cvHD'),
+        'Giai đoạn': GIAI_DOAN[0], 'Ngân sách (đ)': V('cvNS'),
+        'Giá trị HĐ Thiết kế (đ)': V('cvHDTK'), 'Giá trị HĐ Thi công (đ)': V('cvHDTC'),
+        'Giá trị HĐ (đ)': (Number(V('cvHDTK'))||0)+(Number(V('cvHDTC'))||0),
         'Tiến độ (%)': 0, 'Ngày bắt đầu': V('cvBD'), 'Ngày kết thúc DK': V('cvKT'),
         'Phụ trách': V('cvPT'), 'Trạng thái': 'Đang triển khai', 'Ghi chú': 'Chuyển từ lead CRM ' + l.code,
         'Mã KH (CRM)': l.code
@@ -3286,7 +3290,8 @@ function formProject(code){
     + '<div class="grid2">'
     + fld('Loại hình', sel('pLH', LOAI_HINH, d?.['Loại hình']||'Thiết kế & Thi công').replace('<select id="pLH"','<select id="pLH" onchange="__updateProjSeedPreview()"'))
     + fld('Giai đoạn', sel('pGD', GIAI_DOAN, d?.['Giai đoạn']||GIAI_DOAN[0]))
-    + fld('Giá trị HĐ (đ)', inp('pHD', d?.['Giá trị HĐ (đ)'],'number'))
+    + fld('Giá trị HĐ Thiết kế (đ)', inp('pHDTK', d?.['Giá trị HĐ Thiết kế (đ)'],'number'))
+    + fld('Giá trị HĐ Thi công (đ)', inp('pHDTC', d?.['Giá trị HĐ Thi công (đ)'],'number'))
     + fld('Ngân sách chi phí (đ)', inp('pNS', d?.['Ngân sách (đ)'],'number'))
     + fld('Ngày bắt đầu', inp('pBD', d?.['Ngày bắt đầu']||today(),'date'))
     + fld('Ngày kết thúc dự kiến', inp('pKT', d?.['Ngày kết thúc DK'],'date'))
@@ -3302,9 +3307,21 @@ function formProject(code){
       const members = Array.from(document.querySelectorAll('.pMember:checked')).map(el=>el.value).join(',');
       const rec = {'Mã DA': code||'', 'Tên dự án':V('pTen'),'Khách hàng':V('pKH'),'SĐT khách':V('pSDT'),
         'Địa chỉ công trình':V('pDC'),'Loại hình':V('pLH'),'Giai đoạn':V('pGD'),
-        'Ngân sách (đ)':V('pNS'),'Giá trị HĐ (đ)':V('pHD'),'Tiến độ (%)': d?.['Tiến độ (%)']||0,
+        'Ngân sách (đ)':V('pNS'),
+        'Giá trị HĐ Thiết kế (đ)':V('pHDTK'),'Giá trị HĐ Thi công (đ)':V('pHDTC'),
+        'Giá trị HĐ (đ)':(Number(V('pHDTK'))||0)+(Number(V('pHDTC'))||0),
+        'Tiến độ (%)': d?.['Tiến độ (%)']||0,
         'Ngày bắt đầu':V('pBD'),'Ngày kết thúc DK':V('pKT'),'Phụ trách':V('pPT'),'Trạng thái':V('pTT'),'Ghi chú':V('pGC'),
         'Thành viên': members};
+      // Tự liên kết với khách hàng CRM theo SĐT (để dữ liệu dự án hiển thị ngược về CRM)
+      if(isNew){
+        var _np=function(x){var s=String(x||'').replace(/[^0-9]/g,'');if(s.indexOf('84')===0&&s.length>=11)s=s.slice(2);return s.replace(/^0+/,'');};
+        var phP=_np(V('pSDT'));
+        if(phP && Array.isArray(S.leads)){
+          var m=S.leads.find(function(l){return _np(l.sdt||l.phone)===phP;});
+          if(m){ rec['Mã KH (CRM)']=m.code||m.id||''; }
+        }
+      } else if(d && d['Mã KH (CRM)']){ rec['Mã KH (CRM)']=d['Mã KH (CRM)']; }
       const seedEl = document.getElementById('pSeed');
       const seed = isNew && seedEl && seedEl.checked;
       if(isNew){ rec['Mã DA'] = tempCode('DA', S.duan, 'Mã DA'); S.duan.push(rec); }
@@ -4953,6 +4970,15 @@ function pjTongQuan(d){
     + pjRow('Khách hàng', esc(d['Khách hàng']||'—') + (d['SĐT khách']?' · '+esc(d['SĐT khách'])+' '+btnZalo(d['SĐT khách'],'Zalo'):''))
     + pjRow('Địa chỉ công trình', esc(d['Địa chỉ công trình']||'—'))
     + pjRow('Loại hình', esc(d['Loại hình']||'—'))
+    + (function(){
+        var vtk=Number(d['Giá trị HĐ Thiết kế (đ)'])||0, vtc=Number(d['Giá trị HĐ Thi công (đ)'])||0;
+        var tong=(vtk+vtc)||Number(d['Giá trị HĐ (đ)'])||0;
+        var r='';
+        if(vtk) r+=pjRow('HĐ Thiết kế', '<b style="color:var(--brass-deep)">'+fmtTr(vtk)+'</b>');
+        if(vtc) r+=pjRow('HĐ Thi công', '<b style="color:var(--brass-deep)">'+fmtTr(vtc)+'</b>');
+        r+=pjRow('Tổng giá trị HĐ', '<b>'+(tong?fmtTr(tong):'Chưa đặt')+'</b>'+(vtk&&vtc?' <span class="muted">(TK+TC)</span>':''));
+        return r;
+      })()
     + pjRow('Ngày bắt đầu', esc(d['Ngày bắt đầu']||'—'))
     + pjRow('Ngày kết thúc dự kiến', d['Ngày kết thúc DK']
         ? esc(d['Ngày kết thúc DK']) + (daysLeft(d['Ngày kết thúc DK'])<0&&d['Trạng thái']==='Đang triển khai'
@@ -5539,27 +5565,43 @@ function pjTaiChinh(d){
     html += '</div></div>';
   }
 
-  // ★ v2.3 — Đợt thu tiền theo hợp đồng
+  // ★ v2.3 — Đợt thu tiền theo hợp đồng (tách theo loại HĐ: Thiết kế / Thi công)
   const dot = (S.thanhtoan||[]).filter(x=>x['Mã DA']===code);
   const thuDu = dot.reduce((a,x)=>a+(Number(x['Đã thu (đ)'])||0),0);
   const conThu = dot.reduce((a,x)=>a+Math.max(0,(Number(x['Giá trị (đ)'])||0)-(Number(x['Đã thu (đ)'])||0)),0);
   html += '<div class="card fin-section"><h4>Thu tiền theo hợp đồng ('+dot.length+' đợt)</h4>';
   if(dot.length){
-    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Đợt</th><th>Đến hạn</th><th class="num">Giá trị</th><th class="num">Đã thu</th><th class="num">Còn lại</th><th>Trạng thái</th></tr></thead><tbody>'
-      + [...dot].sort((a,b)=>(a['Ngày đến hạn']||'')>(b['Ngày đến hạn']||'')?1:-1).map(x=>{
-          const g=Number(x['Giá trị (đ)'])||0, t=Number(x['Đã thu (đ)'])||0, con=g-t;
-          const dl=daysLeft(x['Ngày đến hạn']);
-          const late = con>0 && dl!==null && dl<0;
-          return '<tr class="row-click" onclick="formPayment(\''+esc(x['Mã TT'])+'\')">'
-            + '<td><b>'+esc(x['Tên đợt'])+'</b></td>'
-            + '<td class="muted">'+(x['Ngày đến hạn']?(late?'<span class="tag t-bad">'+esc(x['Ngày đến hạn'])+' · trễ '+Math.abs(dl)+'n</span>':esc(x['Ngày đến hạn'])):'—')+'</td>'
-            + '<td class="num">'+fmt(g)+'</td><td class="num" style="color:var(--ok)">'+fmt(t)+'</td>'
-            + '<td class="num"><b style="color:'+(con>0?'var(--bad)':'var(--ok)')+'">'+fmt(con)+'</b></td>'
-            + '<td>'+tagTT(x['Trạng thái'])+'</td></tr>';
-        }).join('')
-      + '</tbody></table></div>'
-      + '<div class="fin-total"><span class="ft-lbl">Đã thu '+fmtTr(thuDu)+' · còn phải thu</span><span class="ft-val">'+fmtTr(conThu)+'</span></div>';
-  } else html += '<div class="empty">Chưa lập đợt thu tiền — dùng "⚡ Lập lịch từ mẫu" để tạo cả bộ theo hợp đồng đã ký</div>';
+    // Nhóm đợt theo Loại HĐ
+    const nhom = {};
+    dot.forEach(x=>{ const k=x['Loại HĐ']||'Chung'; (nhom[k]=nhom[k]||[]).push(x); });
+    const thuTuLoai = ['Thiết kế','Thi công','Chung'];
+    const cacLoai = Object.keys(nhom).sort((a,b)=>thuTuLoai.indexOf(a)-thuTuLoai.indexOf(b));
+    const rowHtml = x=>{
+      const g=Number(x['Giá trị (đ)'])||0, t=Number(x['Đã thu (đ)'])||0, con=g-t;
+      const dl=daysLeft(x['Ngày đến hạn']);
+      const late = con>0 && dl!==null && dl<0;
+      return '<tr class="row-click" onclick="formPayment(\''+esc(x['Mã TT'])+'\')">'
+        + '<td><b>'+esc(x['Tên đợt'])+'</b></td>'
+        + '<td class="muted">'+(x['Ngày đến hạn']?(late?'<span class="tag t-bad">'+esc(x['Ngày đến hạn'])+' · trễ '+Math.abs(dl)+'n</span>':esc(x['Ngày đến hạn'])):'—')+'</td>'
+        + '<td class="num">'+fmt(g)+'</td><td class="num" style="color:var(--ok)">'+fmt(t)+'</td>'
+        + '<td class="num"><b style="color:'+(con>0?'var(--bad)':'var(--ok)')+'">'+fmt(con)+'</b></td>'
+        + '<td>'+tagTT(x['Trạng thái'])+'</td></tr>';
+    };
+    cacLoai.forEach(loai=>{
+      const arr=nhom[loai];
+      const sg=arr.reduce((a,x)=>a+(Number(x['Giá trị (đ)'])||0),0);
+      const st=arr.reduce((a,x)=>a+(Number(x['Đã thu (đ)'])||0),0);
+      const sc=sg-st;
+      const nhan = loai==='Chung' ? 'Hợp đồng (chưa phân loại)' : 'HĐ '+loai;
+      html += '<div class="section-label" style="margin-top:8px;color:var(--brass-deep)">'+nhan+' — '+arr.length+' đợt · tổng '+fmtTr(sg)+'</div>'
+        + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Đợt</th><th>Đến hạn</th><th class="num">Giá trị</th><th class="num">Đã thu</th><th class="num">Còn lại</th><th>Trạng thái</th></tr></thead><tbody>'
+        + [...arr].sort((a,b)=>(a['Ngày đến hạn']||'')>(b['Ngày đến hạn']||'')?1:-1).map(rowHtml).join('')
+        + '</tbody></table></div>'
+        + '<div class="fin-total"><span class="ft-lbl">'+nhan+': đã thu '+fmtTr(st)+' · còn thu</span><span class="ft-val" style="color:'+(sc>0?'var(--bad)':'var(--ok)')+'">'+fmtTr(sc)+'</span></div>';
+    });
+    if(cacLoai.length>1)
+      html += '<div class="fin-total" style="border-top:2px solid var(--brass);margin-top:6px"><span class="ft-lbl"><b>TỔNG CỘNG: đã thu '+fmtTr(thuDu)+' · còn phải thu</b></span><span class="ft-val"><b>'+fmtTr(conThu)+'</b></span></div>';
+  } else html += '<div class="empty">Chưa lập đợt thu tiền — dùng "⚡ Lập lịch từ mẫu" để tạo cả bộ theo từng hợp đồng đã ký</div>';
   html += '<div class="card-body" style="border-top:1px solid var(--line);display:flex;gap:7px;flex-wrap:wrap">'
     + (canEditProject(d)?'<button class="btn btn-brass" onclick="formPaymentSchedule(\''+code+'\')">⚡ Lập lịch từ mẫu</button>':'')
     + '<button class="btn btn-ghost" onclick="window._dsDA=\''+code+'\';formPayment()">+ Thêm 1 đợt</button></div></div>';
@@ -6608,28 +6650,45 @@ function schedRecalc(){
   if(es) es.textContent = fmtTr(ss);
 }
 
-/* --- Lịch thu tiền từ KHÁCH (theo dự án) --- */
+/* --- Lịch thu tiền từ KHÁCH (theo dự án, tách theo loại HĐ) --- */
 function formPaymentSchedule(daCode){
   const d = S.duan.find(x=>x['Mã DA']===daCode);
   if(!d) return toast('Chưa chọn dự án', true);
   if(!canEditProject(d)) return toast('Chỉ người phụ trách dự án mới lập lịch thanh toán', true);
   const daCo = (S.thanhtoan||[]).filter(x=>x['Mã DA']===daCode);
+  // Xác định các loại HĐ dự án này có
+  const vtk = Number(d['Giá trị HĐ Thiết kế (đ)'])||0, vtc = Number(d['Giá trị HĐ Thi công (đ)'])||0;
+  const hasTK = vtk>0, hasTC = vtc>0;
+  // Danh sách loại HĐ để chọn
+  const loaiOpts = [];
+  if(hasTK) loaiOpts.push('Thiết kế');
+  if(hasTC) loaiOpts.push('Thi công');
+  if(!loaiOpts.length) loaiOpts.push('Thi công'); // fallback dự án cũ chỉ có tổng
   // gợi ý mẫu khớp loại hình dự án
   let goiY = MAU_TT_KHACH.findIndex(m=>m[1]===d['Loại hình']);
   if(goiY<0) goiY = 3;
+  const defLoai = loaiOpts[0];
+  const defGT = defLoai==='Thiết kế' ? vtk : (defLoai==='Thi công' && hasTC ? vtc : (Number(d['Giá trị HĐ (đ)'])||0));
   openModal('Lập lịch thu tiền — '+d['Tên dự án'],
     (daCo.length?'<div class="tv-hint" style="background:var(--warn-bg);color:var(--warn)">⚠ Dự án đã có <b>'+daCo.length+'</b> đợt thu. Lịch mới sẽ <b>thêm vào</b>, không xóa đợt cũ.</div>':'')
+    + (hasTK&&hasTC?'<div class="tv-hint" style="background:var(--paper);color:var(--ink)">Dự án có <b>2 hợp đồng</b>: Thiết kế '+fmtTr(vtk)+' · Thi công '+fmtTr(vtc)+'. Lập lịch cho <b>từng hợp đồng riêng</b>.</div>':'')
     + '<div class="grid2">'
+    + fld('Hợp đồng áp dụng', '<select id="scLoaiHD" onchange="__scSwitchHD()">'
+        + loaiOpts.map(o=>'<option value="'+o+'">HĐ '+o+'</option>').join('')+'</select>')
     + fld('Mẫu lịch thanh toán', '<select id="scMau" onchange="schedPreview(\'khach\')">'
         + MAU_TT_KHACH.map((m,i)=>'<option value="'+i+'"'+(i===goiY?' selected':'')+'>'+esc(m[0])+'</option>').join('')+'</select>')
-    + fld('Ngày ký hợp đồng', '<input id="scNgay" type="date" value="'+esc(d['Ngày bắt đầu']||today())+'" onchange="schedPreview(\'khach\')">')
     + '</div>'
-    + fld('Giá trị hợp đồng (đ)', '<input id="scGT" type="number" value="'+(Number(d['Giá trị HĐ (đ)'])||0)+'" oninput="schedPreview(\'khach\')">')
+    + '<div class="grid2">'
+    + fld('Ngày ký hợp đồng', '<input id="scNgay" type="date" value="'+esc(d['Ngày bắt đầu']||today())+'" onchange="schedPreview(\'khach\')">')
+    + fld('Giá trị hợp đồng (đ)', '<input id="scGT" type="number" value="'+defGT+'" oninput="schedPreview(\'khach\')">')
+    + '</div>'
+    + '<input type="hidden" id="scVTK" value="'+vtk+'"><input type="hidden" id="scVTC" value="'+vtc+'">'
     + '<div class="section-label">Các đợt sẽ tạo — sửa trực tiếp nếu cần</div>'
     + '<div id="scPreview"></div>',
     function save(){
       const rows = [...document.querySelectorAll('#scPreview tbody tr')];
       if(!rows.length) return toast('Không có đợt nào', true);
+      const loaiHD = V('scLoaiHD')||defLoai;
       let max = 0;
       (S.thanhtoan||[]).forEach(x=>{ const m=String(x['Mã TT']||'').match(/^TT(\d+)$/); if(m) max=Math.max(max,+m[1]); });
       const ops = [];
@@ -6638,22 +6697,31 @@ function formPaymentSchedule(daCode){
         if(tien<=0) return;
         max++;
         const rec = {'Mã TT':'TT'+String(max).padStart(4,'0'),'Mã DA':daCode,
+          'Mã KH':d['Mã KH (CRM)']||'', 'Loại HĐ':loaiHD,
           'Tên đợt':tr.querySelector('.sc-ten').value.trim(),
           'Loại đợt':tr.querySelector('.sc-loai').value,
           '% giá trị HĐ':Number(tr.querySelector('.sc-pct').value)||0,
           'Giá trị (đ)':tien,'Ngày đến hạn':tr.querySelector('.sc-han').value,
           'Đã thu (đ)':0,'Ngày thu':'','Trạng thái':'Chưa đến hạn',
-          'Điều kiện':tr.querySelector('.sc-dk').value,'Ghi chú':'Tạo từ mẫu lịch thanh toán'};
+          'Điều kiện':tr.querySelector('.sc-dk').value,'Ghi chú':'Lịch thanh toán HĐ '+loaiHD};
         (S.thanhtoan=S.thanhtoan||[]).push(rec);
         ops.push({action:'savePayment', data:rec});
       });
       closeModal(); store.saveState(); render();
-      toast('✓ Đã tạo '+ops.length+' đợt thu tiền');
+      toast('Đã tạo '+ops.length+' đợt thu (HĐ '+loaiHD+')');
       apiBatch(ops).then(j=>{ if(j.ok){ setSync('ok','Đã lưu lịch thanh toán'); syncAll(false);} })
         .catch(()=>{ const p=store.pending; ops.forEach(o=>p.push(o)); store.pending=p; setSync('pending',p.length+' thao tác chờ gửi'); });
     }
   );
   setTimeout(()=>schedPreview('khach'), 40);
+}
+// Đổi hợp đồng áp dụng → nạp lại giá trị HĐ tương ứng để tính %
+function __scSwitchHD(){
+  const loai = V('scLoaiHD');
+  const vtk = Number(V('scVTK'))||0, vtc = Number(V('scVTC'))||0;
+  const gt = loai==='Thiết kế' ? vtk : vtc;
+  const el = document.getElementById('scGT'); if(el){ el.value = gt; }
+  schedPreview('khach');
 }
 
 /* --- Lịch thanh toán THẦU PHỤ (theo hợp đồng) --- */
