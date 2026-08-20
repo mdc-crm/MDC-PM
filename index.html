@@ -1186,7 +1186,7 @@ const LOAI_BB = [
   {k:'Nghiệm thu hoàn thành bộ phận / giai đoạn thi công', d:'Nghiệm thu xong một bộ phận hoặc một giai đoạn (phần móng, phần thô, hoàn thiện…)'},
   {k:'Nghiệm thu bàn giao công trình đưa vào sử dụng', d:'Bàn giao toàn bộ công trình cho chủ đầu tư khi hoàn thành'}
 ];
-const TT_BB = ['Nháp','Đạt','Không đạt','Chờ ký','Đã ký'];
+const TT_BB = ['Nháp','Đạt','Không đạt','Chờ ký','Đã ký','Đã huỷ'];
 const TT_AT       = ['Ghi nhận','Đang xử lý','Đã xử lý','Đóng'];
 
 /* ---------- Lưu trữ cục bộ ---------- */
@@ -1584,7 +1584,7 @@ function go(view){
     thaubo:can('edit'), lichhen:true,
     khachhang:false, // readonly mirror CRM
     hientruong:true, muasam:can('edit'), phatsinh:can('edit'),
-    taichinh:false, hosoTL:true, anToanCL:true, khongPH:true, ruiro:true, kiemtra:false,
+    taichinh:false, hosoTL:false, anToanCL:true, khongPH:true, ruiro:true, kiemtra:false,
     duanDetail:false // trang chi tiết có nút riêng trong từng tab
   };
   btnAdd.classList.toggle('hide', !addable[view]);
@@ -4906,54 +4906,81 @@ function formOtherIncome(code){
 /* ================================================================
    ★ v2.0 — HỒ SƠ & TÀI LIỆU
 ================================================================ */
+function docUploadOpenGlobal(){ window._hdDA=''; formDocument(); }
+function docDownloadShown(){
+  const ids=(window.__docShownFiles||[]);
+  if(!ids.length) return toast('Không có file để tải', true);
+  if(ids.length>5 && !confirm('Mở '+ids.length+' file trên Google Drive? Trình duyệt có thể chặn mở nhiều tab.')) return;
+  ids.forEach(id=>window.open('https://drive.google.com/file/d/'+id+'/view','_blank'));
+}
 function vDocuments(){
-  const all = S.hosoTL||[];
-  let html = '<div class="toolbar">'
-    + '<select onchange="window._hdDA=this.value;render()">'
-    + '<option value="">Tất cả dự án</option>'
-    + S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._hdDA===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('')+'</select>'
-    + '<select onchange="window._hdLoai=this.value;render()">'+opt(['Tất cả loại',...LOAI_DOC],window._hdLoai||'')+'</select>'
-    + '<select onchange="window._hdTT=this.value;render()">'+opt(['Tất cả trạng thái',...TT_DOC],window._hdTT||'')+'</select>'
+  const me=user['Họ tên'];
+  if(window._docLatest===undefined) window._docLatest=true;
+  const scope=window._docScope||'all';
+  let src=(S.hosoTL||[]).slice();
+  if(scope==='company') src=src.filter(x=>!x['Mã DA']);
+  else if(scope==='project') src=src.filter(x=>x['Mã DA']);
+  const latestOf=arr=>{const best={};arr.forEach(x=>{const k=x['Mã hồ sơ']||x['Mã TL'];const v=Number(x['Phiên bản'])||1;if(!best[k]||v>(Number(best[k]['Phiên bản'])||1))best[k]=x;});return Object.values(best);};
+  const base=window._docLatest?latestOf(src):src;
+  // Header
+  let html='<div class="cv-head"><div><h2 style="margin:0">Kho hồ sơ dùng chung</h2>'
+    + '<div class="muted" style="font-size:13px;margin-top:2px">Môi trường dữ liệu chung (CDE): quản lý tài liệu, phiên bản, phê duyệt và bản ký theo luồng chuẩn.</div></div>'
+    + (can('edit')?'<button class="btn btn-dark" onclick="docUploadOpenGlobal()">⬆ Tải hồ sơ lên</button>':'')+'</div>';
+  // KPI
+  const choToi=base.filter(x=>x['Trạng thái']==='Chờ lãnh đạo phê duyệt'&&(!x['Người duyệt được giao']||x['Người duyệt được giao']===me));
+  const banHanh=base.filter(x=>x['Trạng thái']==='Đã ban hành'||x['Trạng thái']==='Đã phê duyệt');
+  const daKy=base.filter(x=>x['Trạng thái']==='Đã ký');
+  const kf=window._docKpi||'';
+  html+='<div class="doc-kpis">'
+    + dkCard('','Tổng số hồ sơ',base.length,'🗄','#E8EEF7','#2E5A8F',kf==='')
+    + dkCard('cho','Chờ tôi duyệt',choToi.length,'◷','#FFF3E0','#E65100',kf==='cho')
+    + dkCard('bh','Đã ban hành',banHanh.length,'✓','var(--ok-bg)','var(--ok)',kf==='bh')
+    + dkCard('ky','Đã ký',daKy.length,'🖊','#EDE7F6','#5E35B1',kf==='ky')
     + '</div>';
-  let list = all.filter(x=>
-    (!window._hdDA||x['Mã DA']===window._hdDA)
-    &&(!window._hdLoai||window._hdLoai==='Tất cả loại'||x['Loại']===window._hdLoai)
-    &&(!window._hdTT||window._hdTT==='Tất cả trạng thái'||x['Trạng thái']===window._hdTT)
-  ).sort((a,b)=>(b['Ngày']||'')>(a['Ngày']||'')?1:-1);
-  // ===== Dải tổng quan Hồ sơ =====
-  const hsScope = all.filter(x=>!window._hdDA||x['Mã DA']===window._hdDA);
-  const hsLoai = new Set(hsScope.map(x=>x['Loại']).filter(Boolean)).size;
-  const hsDA = new Set(hsScope.map(x=>x['Mã DA']).filter(Boolean)).size;
-  const hsMoi = hsScope.map(x=>x['Ngày']).filter(Boolean).sort().slice(-1)[0] || '—';
-  html += '<div class="kpis">'
-    + kpi('Tổng hồ sơ', hsScope.length, (window._hdDA?esc(projName(window._hdDA)):'Tất cả dự án'))
-    + kpi('Số loại tài liệu', hsLoai, 'phân loại', 'accent')
-    + kpi('Dự án liên quan', hsDA, 'có hồ sơ')
-    + kpi('Cập nhật gần nhất', esc(hsMoi), 'ngày ghi mới nhất')
+  // Tab phạm vi
+  const scopeTabs=[['all','Tổng quan'],['company','Hồ sơ công ty'],['project','Hồ sơ dự án']];
+  html+='<div class="fin-tabs" style="margin-bottom:14px">'+scopeTabs.map(t=>'<button class="'+(scope===t[0]?'on':'')+'" onclick="window._docScope=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>';
+  // Đếm theo loại
+  const cnt={}; LOAI_DOC.forEach(l=>cnt[l]=base.filter(x=>x['Loại']===l).length);
+  const catSel=window._docCat||'';
+  html+='<div class="doc-layout"><div class="doc-cats"><h5>Phân loại hồ sơ</h5>'
+    + '<div class="doc-cat '+(catSel===''?'on':'')+'" onclick="window._docCat=\'\';render()"><span>🗂</span>Tất cả loại<span class="dcn">'+base.length+'</span></div>'
+    + LOAI_DOC.map(l=>'<div class="doc-cat '+(catSel===l?'on':'')+'" onclick="window._docCat=\''+esc(l)+'\';render()"><span>'+(DOC_ICON[l]||'📁')+'</span>'+esc(l)+'<span class="dcn">'+cnt[l]+'</span></div>').join('')
     + '</div>';
-  if(!list.length) return html+'<div class="empty"><b>Chưa có tài liệu</b>Lưu trữ hợp đồng, bản vẽ, biên bản nghiệm thu, bàn giao…</div>';
-  html += '<div class="card">';
-  list.forEach(x=>{
-    const f = parsePhotos(x['File đính kèm']||x['Ảnh']);
-    const id = f[0] && (typeof f[0]==='object'?f[0].id:f[0]);
-    const isImg = f[0] && !(typeof f[0]==='object' && f[0].doc);
-    html += '<div class="doc-item" onclick="formDocument(\''+esc(x['Mã TL'])+'\')">'
-      + '<div class="doc-icon" style="overflow:hidden;padding:0">'
-        + (id&&isImg?'<img src="https://drive.google.com/thumbnail?id='+esc(id)+'&sz=w120" style="width:100%;height:100%;object-fit:cover" loading="lazy">':(DOC_ICON[x['Loại']]||'📎'))
-      + '</div>'
-      + '<div class="doc-meta">'
-        + '<b>'+esc(x['Tiêu đề']||x['Loại']||'Tài liệu')+'</b>'
-        + '<span>'+esc(projName(x['Mã DA']))+' · '+esc(x['Loại']||'')
-        + (x['Mã hồ sơ']?' · '+esc(x['Mã hồ sơ']):'')
-        + (x['Phiên bản']?' · v'+esc(x['Phiên bản']):'')
-        + (x['Ngày']?' · '+esc(x['Ngày']):'')+'</span>'
-      + '</div>'
-      + '<div style="text-align:right;flex:none">'
-        + docStat(x['Trạng thái'])
-        + (f.length?'<div class="muted" style="font-size:11px;margin-top:3px">📎 '+f.length+' file</div>':'')
-      + '</div></div>';
-  });
-  html += '</div>';
+  // Cột phải
+  let list=base.slice();
+  if(catSel) list=list.filter(x=>x['Loại']===catSel);
+  if(kf==='cho') list=list.filter(x=>choToi.includes(x));
+  if(kf==='bh') list=list.filter(x=>x['Trạng thái']==='Đã ban hành'||x['Trạng thái']==='Đã phê duyệt');
+  if(kf==='ky') list=list.filter(x=>x['Trạng thái']==='Đã ký');
+  const tabs=[['','Tất cả',list.length],
+    ['cho','Chờ duyệt',list.filter(x=>x['Trạng thái']==='Chờ lãnh đạo phê duyệt').length],
+    ['bh','Đã ban hành',list.filter(x=>x['Trạng thái']==='Đã ban hành'||x['Trạng thái']==='Đã phê duyệt').length],
+    ['nhap','Nháp',list.filter(x=>x['Trạng thái']==='Nháp').length]];
+  const tabSel=window._docTab||'';
+  let show=list.slice();
+  if(tabSel==='cho') show=show.filter(x=>x['Trạng thái']==='Chờ lãnh đạo phê duyệt');
+  if(tabSel==='bh') show=show.filter(x=>x['Trạng thái']==='Đã ban hành'||x['Trạng thái']==='Đã phê duyệt');
+  if(tabSel==='nhap') show=show.filter(x=>x['Trạng thái']==='Nháp');
+  const q=(window._docQ||'').toLowerCase();
+  if(q) show=show.filter(x=>((x['Tiêu đề']||'')+(x['Mã hồ sơ']||'')+(x['Loại']||'')+(x['Người tải lên']||'')).toLowerCase().includes(q));
+  show.sort((a,b)=>{const pa=a['Trạng thái']==='Chờ lãnh đạo phê duyệt'?0:1,pb=b['Trạng thái']==='Chờ lãnh đạo phê duyệt'?0:1;if(pa!==pb)return pa-pb;return (b['Ngày']||'')>(a['Ngày']||'')?1:-1;});
+  window.__docShownFiles=show.flatMap(x=>parsePhotos(x['File đính kèm']||x['Ảnh']).map(p=>(p&&typeof p==='object')?p.id:p).filter(Boolean));
+  const scopeLbl=scope==='company'?'Hồ sơ công ty':scope==='project'?'Hồ sơ dự án':'tất cả hồ sơ';
+  html+='<div class="doc-panel"><div class="doc-ph"><span>📁</span><b>'+(catSel?esc(catSel):('Tổng quan — '+scopeLbl))+'</b>'
+    + '<div class="doc-tools">'
+    + '<input type="search" placeholder="Tìm trong mục này…" value="'+esc(window._docQ||'')+'" oninput="window._docQ=this.value;render()">'
+    + '<label><input type="checkbox" '+(window._docLatest?'checked':'')+' onchange="window._docLatest=this.checked;render()">Bản mới nhất</label>'
+    + '<button class="btn btn-ghost" style="padding:6px 11px;font-size:12px" onclick="docDownloadShown()">⬇ Tải xuống toàn bộ ('+window.__docShownFiles.length+')</button>'
+    + (can('edit')?'<button class="btn btn-dark" style="padding:6px 13px;font-size:12.5px" onclick="docUploadOpenGlobal()">⬆ Tải hồ sơ lên</button>':'')
+    + '</div></div>';
+  html+='<div class="doc-tabs">'+tabs.map(t=>'<button class="'+(tabSel===t[0]?'on':'')+'" onclick="window._docTab=\''+t[0]+'\';render()">'+t[1]+'<span class="n">'+t[2]+'</span></button>').join('')+'</div>';
+  if(!show.length){ html+='<div class="empty" style="padding:34px 18px"><b>Chưa có hồ sơ</b>Bấm "⬆ Tải hồ sơ lên" để thêm hợp đồng, bản vẽ, báo giá, biên bản nghiệm thu…</div>'; }
+  else {
+    html+='<div class="doc-row hdr"><div></div><div>Tên hồ sơ</div><div class="c-ma">Mã</div><div>Phiên bản</div><div>Trạng thái</div><div class="c-up">Người tải lên</div><div style="text-align:right">Thao tác</div></div>';
+    html+=show.map(x=>docRow(x, can('edit'), me)).join('');
+  }
+  html+='</div></div>';
   return html;
 }
 function formDocument(code){
@@ -5131,6 +5158,37 @@ function formSafetyRecord(code){
 /* ================================================================
    ★ Biên bản nghiệm thu — 4 mẫu chuẩn xây dựng + in PDF
 ================================================================ */
+function pjBienBan(d){
+  const code=d['Mã DA']; const canEd=canEditProject(d);
+  const all=(S.bienban||[]).filter(x=>x['Mã DA']===code);
+  const fLoai=window._pbLoai||'', fTT=window._pbTT||'', q=(window._pbQ||'').toLowerCase();
+  const list=all.filter(x=>(!fLoai||x['Loại biên bản']===fLoai)&&(!fTT||x['Trạng thái']===fTT)
+      &&(!q||((x['Mã BB']||'')+(x['Đối tượng nghiệm thu']||'')).toLowerCase().includes(q)))
+    .sort((a,b)=>(b['Ngày nghiệm thu']||'')>(a['Ngày nghiệm thu']||'')?1:-1);
+  const pills=[['','Tất cả'],['Nháp','Nháp'],['Chờ ký','Chờ ký'],['Đã ký','Đã ký đủ'],['Đã huỷ','Đã huỷ']];
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    + (canEd?'<button class="btn btn-brass" onclick="window._bbDA=\''+code+'\';formBienBan()">+ Làm biên bản nghiệm thu</button>':'')+'</div>'
+    + '<div class="cv-filter">'
+      + '<select onchange="window._pbLoai=this.value;render()"><option value="">Mọi loại biên bản</option>'+LOAI_BB.map(l=>'<option'+(fLoai===l.k?' selected':'')+'>'+esc(l.k)+'</option>').join('')+'</select>'
+      + '<input placeholder="🔍 Tìm số hiệu / đối tượng" value="'+esc(window._pbQ||'')+'" onchange="window._pbQ=this.value;render()" style="min-width:190px">'
+      + '<span class="cv-sort" style="margin-left:auto">'+pills.map(p=>'<button class="'+(fTT===p[0]?'on':'')+'" onclick="window._pbTT=\''+p[0]+'\';render()">'+p[1]+'</button>').join('')+'</span>'
+    + '</div>';
+  if(!list.length){
+    return html+'<div class="card"><div class="empty" style="padding:44px 20px;text-align:center">'
+      + '<div style="font-size:34px;opacity:.45;margin-bottom:8px">📝</div>'
+      + '<b>Chưa có biên bản nghiệm thu</b>Bấm "Làm biên bản nghiệm thu", chọn loại biên bản rồi sửa nội dung theo thực tế.<br><br>'
+      + (canEd?'<button class="btn btn-brass" onclick="window._bbDA=\''+code+'\';formBienBan()">+ Làm biên bản nghiệm thu</button>':'')
+      + '</div></div>';
+  }
+  html+='<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th>Loại biên bản</th><th>Đối tượng nghiệm thu</th><th>Ngày</th><th>Trạng thái</th><th></th></tr></thead><tbody>';
+  html+=list.map(x=>'<tr class="row-click" onclick="formBienBan(\''+esc(x['Mã BB'])+'\')">'
+    + '<td class="muted">'+esc(x['Mã BB'])+'</td><td><b>'+esc(x['Loại biên bản']||'—')+'</b></td>'
+    + '<td>'+esc(x['Đối tượng nghiệm thu']||'—')+'</td><td class="muted">'+esc(fmtDMY(x['Ngày nghiệm thu'])||'—')+'</td>'
+    + '<td>'+tagTT(x['Trạng thái']||'Nháp')+'</td>'
+    + '<td><button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="event.stopPropagation();bbPrint(\''+esc(x['Mã BB'])+'\')">⎙ In</button></td></tr>').join('');
+  html+='</tbody></table></div></div></div>';
+  return html;
+}
 function vBienBan(){
   const all = S.bienban||[];
   let html = '<div class="cv-head"><div><h2 style="margin:0">Biên bản nghiệm thu</h2>'
@@ -5476,6 +5534,7 @@ function vProjectDetail(){
     ['thaubo','Thầu phụ','◈',tpSet.size],
     ['taichinh','Tài chính','₫',null],
     ['hientruong','Hiện trường','📍',ht.length],
+    ['bienban','Biên bản','📝',(S.bienban||[]).filter(x=>x['Mã DA']===d['Mã DA']).length],
     ['hoso','Hồ sơ','📁',tl.length],
     ['thanhvien','Thành viên','◉',memberCodes.length]
   ];
@@ -5489,7 +5548,7 @@ function vProjectDetail(){
   const fn = {
     tongquan:pjTongQuan, congviec:pjCongViec, kehoach:pjKeHoach,
     thaubo:pjThauPhu, taichinh:pjTaiChinh, hientruong:pjHienTruong,
-    hoso:pjHoSo, thanhvien:pjThanhVien
+    bienban:pjBienBan, hoso:pjHoSo, thanhvien:pjThanhVien
   }[window._pjTab] || pjTongQuan;
   html += fn(d);
   return html;
