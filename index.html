@@ -2119,6 +2119,20 @@ function vTasks(){
   let html = '<div class="toolbar"><select id="fTaskProj" onchange="window._ftp=this.value;render()">'
     + '<option value="">Tất cả dự án</option>' + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._ftp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select>'
     + '<select id="fTaskTT" onchange="window._ftt=this.value;render()">' + opt(['Tất cả trạng thái',...TT_CV], window._ftt||'') + '</select></div>';
+  // ===== Dải tổng quan Công việc =====
+  const cvScope = myCV.filter(c => !window._ftp || c['Mã DA']===window._ftp);
+  const cvDone = cvScope.filter(c=>c['Trạng thái']==='Hoàn thành').length;
+  const cvLate = cvScope.filter(c=>c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0).length;
+  const cvRun  = cvScope.filter(c=>c['Trạng thái']==='Đang làm').length;
+  const cvWait = cvScope.filter(c=>c['Trạng thái']==='Chờ duyệt').length;
+  const cvPct  = cvScope.length ? Math.round(cvDone/cvScope.length*100) : 0;
+  html += '<div class="kpis">'
+    + kpi('Tổng công việc', cvScope.length, (window._ftp?esc(projName(window._ftp)):'Tất cả dự án'))
+    + kpi('Đang làm', cvRun, 'đang thực hiện', 'accent')
+    + kpi('Quá hạn', cvLate, cvLate?'cần xử lý ngay':'không có việc trễ', cvLate?'bad':'')
+    + kpi('Chờ duyệt', cvWait, 'đang chờ phê duyệt')
+    + kpi('Hoàn thành', cvDone+' · '+cvPct+'%', 'trên tổng '+cvScope.length+' việc', 'accent')
+    + '</div>';
   let list = myCV.filter(c => (!window._ftp || c['Mã DA']===window._ftp) && (!window._ftt || window._ftt==='Tất cả trạng thái' || c['Trạng thái']===window._ftt));
 
   // Nhóm theo giai đoạn — đúng thứ tự quy trình; việc mới ở giai đoạn nào tự xếp vào nhóm đó
@@ -2222,16 +2236,31 @@ function vGantt(){
   const dayW = totalDays <= 30 ? 28 : totalDays <= 90 ? 14 : totalDays <= 180 ? 8 : 5; // px/ngày
   const colDay = dayW + 'px';
 
-  // Render header: tháng/ngày
+  // Render header: dải THÁNG (trên) + hàng NGÀY (dưới)
   let headerDays = '';
   const months = {};
+  const THU = ['CN','T2','T3','T4','T5','T6','T7'];
+  const showThu = dayW >= 20; // đủ rộng mới hiện thứ
   for(let i=0; i<=totalDays; i++){
     const d = new Date(minD); d.setDate(d.getDate()+i);
     const mk = d.getFullYear() + '-' + (d.getMonth()+1);
-    if(!months[mk]) months[mk] = {label: 'T'+(d.getMonth()+1)+'/'+d.getFullYear(), count: 0};
+    if(!months[mk]) months[mk] = {label: 'Tháng '+(d.getMonth()+1)+'/'+d.getFullYear(), count: 0};
     months[mk].count++;
-    headerDays += '<div style="border-right:1px solid var(--line);text-align:center;padding:6px 0;font-size:10px;color:var(--ink-soft);min-width:'+dayW+'px">'+d.getDate()+'</div>';
+    const dow = d.getDay();
+    const first = d.getDate()===1;
+    const wend = (dow===0 || dow===6);
+    const bg = first ? 'background:#FBF4E6;' : wend ? 'background:#FBFAF7;' : '';
+    const bd = first ? 'border-left:1.5px solid var(--brass);' : 'border-right:1px solid var(--line);';
+    headerDays += '<div style="'+bd+bg+'text-align:center;padding:5px 0;font-size:10px;color:'+(wend?'#B23A2E':'var(--ink-soft)')+';min-width:'+dayW+'px;width:'+dayW+'px;box-sizing:border-box;line-height:1.25">'
+      + '<div style="font-weight:'+(first?'700':'500')+'">'+d.getDate()+'</div>'
+      + (showThu ? '<div style="font-size:8.5px;opacity:.7">'+THU[dow]+'</div>' : '')
+      + '</div>';
   }
+  // Dải tháng: mỗi tháng 1 ô rộng = số ngày × dayW
+  let headerMonths = '';
+  Object.keys(months).forEach(mk => { const mo = months[mk]; const w = mo.count * dayW;
+    headerMonths += '<div style="min-width:'+w+'px;width:'+w+'px;box-sizing:border-box;border-right:1.5px solid var(--line-strong);padding:4px 8px;font-size:11px;font-weight:700;color:var(--brass-deep);background:#FBF8F1;white-space:nowrap;overflow:hidden">'+mo.label+'</div>';
+  });
 
   // Group tasks by giai đoạn
   const groups = GIAI_DOAN.map(g => ({g, items:[]}));
@@ -2249,7 +2278,9 @@ function vGantt(){
   let gantt = '<div class="gantt-wrap"><div class="gantt" style="grid-template-columns:240px 1fr">';
   // Header row
   gantt += '<div class="gantt-row head"><div class="gantt-name">Công việc</div>'
-    + '<div style="position:relative;padding:0!important"><div style="display:flex">' + headerDays + '</div>'
+    + '<div style="position:relative;padding:0!important">'
+    + '<div style="display:flex;border-bottom:1px solid var(--line)">' + headerMonths + '</div>'
+    + '<div style="display:flex">' + headerDays + '</div>'
     + (todayInRange ? '<div class="gantt-today" style="left:'+todayOffset+'px"></div>' : '')
     + '</div></div>';
 
@@ -2976,7 +3007,18 @@ function dgRecalc(){
 
 /* ---------- Trang Nhân sự ---------- */
 function vStaff(){
-  let html = '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th>Họ tên</th><th>Chức danh</th><th>Vai trò</th><th>SĐT</th><th>Cấp duyệt</th><th>Trạng thái</th></tr></thead><tbody>';
+  // ===== Dải tổng quan Nhân sự =====
+  const nsAll = S.nhansu||[];
+  const nsLam = nsAll.filter(n=>/làm việc|đang làm|active/i.test(String(n['Trạng thái']||''))).length;
+  const nsDuyet = nsAll.filter(n=>(n['Cấp duyệt']||'').trim()).length;
+  const nsVaiTro = new Set(nsAll.map(n=>n['Vai trò']).filter(Boolean)).size;
+  let html = '<div class="kpis">'
+    + kpi('Tổng nhân sự', nsAll.length, 'trong hệ thống')
+    + kpi('Đang làm việc', nsLam||nsAll.length, 'nhân sự hoạt động', 'accent')
+    + kpi('Có cấp duyệt', nsDuyet, 'được phân quyền duyệt')
+    + kpi('Số vai trò', nsVaiTro, 'nhóm phân quyền')
+    + '</div>';
+  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th>Họ tên</th><th>Chức danh</th><th>Vai trò</th><th>SĐT</th><th>Cấp duyệt</th><th>Trạng thái</th></tr></thead><tbody>';
   html += S.nhansu.map(n=>'<tr'+(can('staff')?' class="row-click" onclick="formStaff(\''+n['Mã NV']+'\')"':'')+'><td class="muted">'+esc(n['Mã NV'])+'</td><td><b>'+esc(n['Họ tên'])+'</b><div class="muted">'+esc(n['Email']||'')+'</div></td><td>'+esc(n['Chức danh']||'—')+'</td><td>'+esc(VAI_TRO[n['Vai trò']]||n['Vai trò'])+'</td><td>'+esc(n['SĐT']||'')+'</td><td>'+((n['Cấp duyệt']||'').trim()?'<span class="tag t-brass">'+esc(n['Cấp duyệt'])+'</span>':'<span class="muted">—</span>')+'</td><td>'+tagTT(n['Trạng thái'])+'</td></tr>').join('');
   html += '</tbody></table></div></div></div>';
   if(!can('staff')) html += '<p class="muted" style="margin-top:10px">Chỉ Quản trị viên được thêm/sửa nhân sự và mật khẩu.</p>';
@@ -3772,6 +3814,18 @@ function vSite(){
     + '</select></div>';
   const list = all.filter(x => !window._stDA || x['Mã DA']===window._stDA)
     .sort((a,b)=>(b['Ngày']||'')>(a['Ngày']||'')?1:-1);
+  // ===== Dải tổng quan Hiện trường =====
+  const htToday = today();
+  const htHom = list.filter(x=>(x['Ngày']||'')===htToday).length;
+  const htSuCo = list.filter(x=>x['Loại']==='Sự cố').length;
+  const htNgay = new Set(list.map(x=>x['Ngày']).filter(Boolean)).size;
+  const htDA = new Set(list.map(x=>x['Mã DA']).filter(Boolean)).size;
+  html += '<div class="kpis">'
+    + kpi('Tổng nhật ký', list.length, (window._stDA?esc(projName(window._stDA)):'Tất cả dự án'))
+    + kpi('Nhật ký hôm nay', htHom, 'ghi trong ngày', 'accent')
+    + kpi('Sự cố', htSuCo, htSuCo?'cần theo dõi':'không có sự cố', htSuCo?'bad':'')
+    + kpi('Số ngày có ghi', htNgay, 'trên '+htDA+' dự án')
+    + '</div>';
   if(!list.length){
     return html + '<div class="empty"><b>Chưa có nhật ký hiện trường</b>Ghi lại tiến độ, sự cố, hình ảnh công trình hàng ngày</div>';
   }
@@ -4560,6 +4614,17 @@ function vDocuments(){
     &&(!window._hdLoai||window._hdLoai==='Tất cả loại'||x['Loại']===window._hdLoai)
     &&(!window._hdTT||window._hdTT==='Tất cả trạng thái'||x['Trạng thái']===window._hdTT)
   ).sort((a,b)=>(b['Ngày']||'')>(a['Ngày']||'')?1:-1);
+  // ===== Dải tổng quan Hồ sơ =====
+  const hsScope = all.filter(x=>!window._hdDA||x['Mã DA']===window._hdDA);
+  const hsLoai = new Set(hsScope.map(x=>x['Loại']).filter(Boolean)).size;
+  const hsDA = new Set(hsScope.map(x=>x['Mã DA']).filter(Boolean)).size;
+  const hsMoi = hsScope.map(x=>x['Ngày']).filter(Boolean).sort().slice(-1)[0] || '—';
+  html += '<div class="kpis">'
+    + kpi('Tổng hồ sơ', hsScope.length, (window._hdDA?esc(projName(window._hdDA)):'Tất cả dự án'))
+    + kpi('Số loại tài liệu', hsLoai, 'phân loại', 'accent')
+    + kpi('Dự án liên quan', hsDA, 'có hồ sơ')
+    + kpi('Cập nhật gần nhất', esc(hsMoi), 'ngày ghi mới nhất')
+    + '</div>';
   if(!list.length) return html+'<div class="empty"><b>Chưa có tài liệu</b>Lưu trữ hợp đồng, bản vẽ, biên bản nghiệm thu, bàn giao…</div>';
   html += '<div class="card">';
   list.forEach(x=>{
