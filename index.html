@@ -278,6 +278,49 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .cal-day .ev.done{background:var(--ok-bg);color:var(--ok)}
 .cal-day .ev.cancel{background:var(--bad-bg);color:var(--bad);text-decoration:line-through}
 @media(max-width:520px){.cal-day{min-height:54px;padding:4px}.cal-day .ev{font-size:9.5px}.cal-day .d{font-size:11px}}
+/* ★ Bảng công việc (module Công việc) — theo mẫu bản Công ty */
+.cv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.cv-head h2{font-size:22px}
+.cv-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.cv-filter input,.cv-filter select{padding:8px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:var(--card)}
+.cv-filter #cvSearch{min-width:180px}
+.cv-pill{padding:8px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--card);cursor:pointer;font-size:12.5px;color:var(--ink-soft)}
+.cv-pill.on{background:var(--brass);color:#fff;border-color:var(--brass-deep);font-weight:600}
+.cv-sort{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-soft)}
+.cv-sort button{padding:5px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--card);cursor:pointer;font-size:12px;color:var(--ink-soft)}
+.cv-sort button.on{background:var(--brass-soft);color:var(--brass-deep);border-color:var(--brass);font-weight:600}
+.cv-overview{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:900px){.cv-overview{grid-template-columns:1fr}}
+.cv-ovpanel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.cv-ovpanel h3{margin:0 0 14px;font-size:15px}
+.cv-ovbody{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.cv-donut{width:132px;height:132px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.cv-donut-hole{width:88px;height:88px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cv-donut-hole .n{font-size:28px;font-weight:800;color:var(--ink);line-height:1}
+.cv-donut-hole .l{font-size:11px;color:var(--ink-soft)}
+.cv-scards{flex:1;min-width:200px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cv-scard{border:1px solid var(--line);border-left:3px solid;border-radius:var(--r-sm);padding:8px 11px;background:var(--paper)}
+.cv-scard .t{font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:5px}
+.cv-scard .t .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.cv-scard .v{font-size:19px;font-weight:800;margin-top:2px}
+.cv-scard .v span{font-size:12px;font-weight:600;color:var(--ink-soft)}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:14px}
+.cal-nav button{padding:4px 9px;border:1px solid var(--line-strong);background:var(--card);border-radius:var(--r-sm);cursor:pointer;font-size:12px;margin-left:4px}
+.cal-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:2px}
+.cal-dows span{text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-soft);padding:3px 0}
+.cv-ovpanel .cal-day{min-height:46px;padding:4px;cursor:pointer}
+.cv-ovpanel .cal-day.has:hover{background:var(--brass-soft)}
+.cv-ovpanel .cal-day.sel{box-shadow:inset 0 0 0 2px var(--brass-deep)}
+.cal-dot{display:inline-block;margin-top:2px;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;font-size:9.5px;font-weight:700;color:#fff;padding:0 3px}
+.cal-dot.late{background:#C0392B} .cal-dot.up{background:#2F6DB5} .cal-dot.done{background:#4E9A51}
+.cal-legend{display:flex;gap:14px;margin-top:9px;font-size:11.5px;color:var(--ink-soft)}
+.cal-legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}
+.cal-legend i.late{background:#C0392B} .cal-legend i.up{background:#2F6DB5} .cal-legend i.done{background:#4E9A51}
+.cal-hint{margin-top:10px;font-size:11.5px;color:var(--ink-faint);text-align:center;padding:8px}
+.cal-sel{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.cal-sel b{font-size:12.5px}
+.cal-selrow{padding:5px 6px;font-size:12px;border-radius:5px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.cal-selrow:hover{background:var(--paper)}
 
 /* ★ Nhóm 3 — Thầu phụ card */
 .sub-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .12s}
@@ -1497,7 +1540,7 @@ function go(view){
   const btnAdd = document.getElementById('btnAdd');
   const addable = {
     duan:can('edit')||capBacRank_(user['Vai trò'])!=='nhanvien',
-    congviec:true, chiphi:true, nhansu:can('staff'),
+    congviec:false, chiphi:true, nhansu:can('staff'),
     thaubo:can('edit'), lichhen:true,
     khachhang:false, // readonly mirror CRM
     hientruong:true, muasam:can('edit'), phatsinh:can('edit'),
@@ -2115,59 +2158,130 @@ function vProjects(){
 /* ---------- Trang Công việc (nhóm theo thứ tự giai đoạn quy trình) ---------- */
 function vTasks(){
   const myDuan = visibleProjects();
-  const myCV = visibleTasks();
-  let html = '<div class="toolbar"><select id="fTaskProj" onchange="window._ftp=this.value;render()">'
-    + '<option value="">Tất cả dự án</option>' + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._ftp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select>'
-    + '<select id="fTaskTT" onchange="window._ftt=this.value;render()">' + opt(['Tất cả trạng thái',...TT_CV], window._ftt||'') + '</select></div>';
-  // ===== Dải tổng quan Công việc =====
-  const cvScope = myCV.filter(c => !window._ftp || c['Mã DA']===window._ftp);
-  const cvDone = cvScope.filter(c=>c['Trạng thái']==='Hoàn thành').length;
-  const cvLate = cvScope.filter(c=>c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0).length;
-  const cvRun  = cvScope.filter(c=>c['Trạng thái']==='Đang làm').length;
-  const cvWait = cvScope.filter(c=>c['Trạng thái']==='Chờ duyệt').length;
-  const cvPct  = cvScope.length ? Math.round(cvDone/cvScope.length*100) : 0;
-  html += '<div class="kpis">'
-    + kpi('Tổng công việc', cvScope.length, (window._ftp?esc(projName(window._ftp)):'Tất cả dự án'))
-    + kpi('Đang làm', cvRun, 'đang thực hiện', 'accent')
-    + kpi('Quá hạn', cvLate, cvLate?'cần xử lý ngay':'không có việc trễ', cvLate?'bad':'')
-    + kpi('Chờ duyệt', cvWait, 'đang chờ phê duyệt')
-    + kpi('Hoàn thành', cvDone+' · '+cvPct+'%', 'trên tổng '+cvScope.length+' việc', 'accent')
+  const base = visibleTasks();
+  const fP=window._ftp||'', fPT=window._ftPT||'', fQH=!!window._ftQH, fSearch=(window._ftSearch||'').toLowerCase().trim();
+  const fSort=window._ftSort||'han', view=window._cvMainView||'kanban', showOv=!window._ftHideOv;
+  const people=[...new Set(base.map(c=>c['Phụ trách']).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
+  const canEd=can('edit');
+  let list=base.filter(c=>
+    (!fP || c['Mã DA']===fP)
+    && (!fPT || c['Phụ trách']===fPT)
+    && (!fQH || (c['Trạng thái']!=='Hoàn thành' && c['Hạn hoàn thành'] && daysLeft(c['Hạn hoàn thành'])<0))
+    && (!fSearch || String(c['Tên công việc']||'').toLowerCase().includes(fSearch) || String(c['Phụ trách']||'').toLowerCase().includes(fSearch))
+  );
+  // ---- Header ----
+  let html='<div class="cv-head"><div><h2 style="margin:0">Bảng công việc</h2>'
+    + '<div class="muted" style="font-size:13px;margin-top:2px">Toàn bộ đầu việc của bạn và các dự án bạn tham gia · '+list.length+' đầu việc</div></div>'
+    + (canEd?'<button class="btn btn-brass" onclick="'+(fP?'window._ftp=\''+fP+'\';':'')+'formTask()">+ Tạo đầu việc</button>':'')
     + '</div>';
-  let list = myCV.filter(c => (!window._ftp || c['Mã DA']===window._ftp) && (!window._ftt || window._ftt==='Tất cả trạng thái' || c['Trạng thái']===window._ftt));
-
-  // Nhóm theo giai đoạn — đúng thứ tự quy trình; việc mới ở giai đoạn nào tự xếp vào nhóm đó
-  const groups = GIAI_DOAN.map(g => ({g, items: []}));
-  const other = {g: 'Ngoài quy trình', items: []};
-  list.forEach(c => { const i = GIAI_DOAN.indexOf(c['Giai đoạn']); (i > -1 ? groups[i] : other).items.push(c); });
-  const all = groups.concat([other]).filter(grp => grp.items.length);
-
-  const row = c => {
-    const dl = daysLeft(c['Hạn hoàn thành']);
-    const hanCls = c['Trạng thái']==='Hoàn thành' ? '' : dl===null ? '' : dl<0 ? 't-bad' : dl<=3 ? 't-warn' : '';
-    return '<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')">'
-      + '<td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">'+esc(projName(c['Mã DA']))+(c['Thầu phụ']?' · ◈ '+esc(c['Thầu phụ']):'')+(c['Ý kiến chỉ đạo']?' · 💬 có chỉ đạo':'')+(parsePhotos(c['Ảnh']).length?' · 📷 '+parsePhotos(c['Ảnh']).length:'')+'</div></td>'
-      + '<td>'+esc(c['Phụ trách']||'—')+'</td>'
-      + '<td class="muted">'+esc(c['Ngày bắt đầu']||'—')+'</td>'
-      + '<td>'+(c['Hạn hoàn thành'] ? (hanCls?'<span class="tag '+hanCls+'">':'')+esc(c['Hạn hoàn thành'])+(hanCls?'</span>':'') : '—')+(c['Ngày hoàn thành']?'<div class="muted" style="font-size:11px">✓ Xong: '+esc(c['Ngày hoàn thành'])+'</div>':'')+'</td>'
-      + '<td>'+tagUT(c['Ưu tiên'])+'</td>'
-      + '<td><div class="bar" style="width:74px"><i style="width:'+(Number(c['Tiến độ (%)'])||0)+'%"></i></div></td>'
-      + '<td>'+tagTT(c['Trạng thái'])+'</td></tr>';
-  };
-  const byDue = (a,b) => (a['Trạng thái']==='Hoàn thành') - (b['Trạng thái']==='Hoàn thành') || ((a['Hạn hoàn thành']||'9999') > (b['Hạn hoàn thành']||'9999') ? 1 : -1);
-
-  html += '<div class="card">';
-  if(all.length){
-    all.forEach(grp => {
-      grp.items.sort(byDue);
-      const done = grp.items.filter(x=>x['Trạng thái']==='Hoàn thành').length;
-      const gi = GIAI_DOAN.indexOf(grp.g);
-      html += '<div class="phase-head"><span>'+(gi>-1 ? 'GĐ'+(gi+1)+' · ' : '')+esc(grp.g)+'</span><span class="cnt">'+done+'/'+grp.items.length+' hoàn thành</span></div>'
-        + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Công việc</th><th>Phụ trách</th><th>Bắt đầu</th><th>Hạn</th><th>Ưu tiên</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead><tbody>'
-        + grp.items.map(row).join('') + '</tbody></table></div>';
-    });
-  } else html += '<div class="empty"><b>Chưa có công việc</b>Bấm "+ Thêm mới" để giao việc — việc thuộc giai đoạn nào sẽ tự xếp vào nhóm giai đoạn đó</div>';
-  html += '</div>';
+  // ---- Thanh lọc ----
+  html+='<div class="cv-filter">'
+    + '<input id="cvSearch" placeholder="🔍 Tìm đầu việc..." value="'+esc(window._ftSearch||'')+'" onchange="window._ftSearch=this.value;render()">'
+    + '<select onchange="window._ftp=this.value;render()"><option value="">Tất cả dự án</option>'+myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(fP===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('')+'</select>'
+    + '<select onchange="window._ftPT=this.value;render()"><option value="">Tất cả người phụ trách</option>'+people.map(p=>'<option'+(fPT===p?' selected':'')+'>'+esc(p)+'</option>').join('')+'</select>'
+    + '<button class="cv-pill'+(fQH?' on':'')+'" onclick="window._ftQH=!window._ftQH;render()">◔ Chỉ quá hạn</button>'
+    + '<span class="cv-sort">Sắp xếp:'
+      + '<button class="'+(fSort==='han'?'on':'')+'" onclick="window._ftSort=\'han\';render()">Hạn</button>'
+      + '<button class="'+(fSort==='uutien'?'on':'')+'" onclick="window._ftSort=\'uutien\';render()">Ưu tiên</button>'
+      + '<button class="'+(fSort==='ten'?'on':'')+'" onclick="window._ftSort=\'ten\';render()">Tên việc</button>'
+    + '</span>'
+    + '<button class="cv-pill" onclick="window._ftHideOv=!window._ftHideOv;render()">'+(showOv?'▲ Ẩn tổng quan':'▼ Hiện tổng quan')+'</button>'
+    + '<button class="btn btn-ghost" onclick="taskExport()" style="margin-left:auto">⬇ Xuất Excel</button>'
+    + '<button class="btn btn-ghost" onclick="taskImportOpen()">⬆ Nhập Excel</button>'
+    + '</div>';
+  // ---- Tổng quan (donut + lịch) ----
+  if(showOv) html+=cvOverview(list);
+  // ---- Chuyển chế độ xem ----
+  html+='<div class="kb-bar"><span class="hint">'+(view==='kanban'?'Kéo-thả thẻ để đổi trạng thái. ':'')+'Hiển thị <b>'+list.length+'</b> đầu việc.</span>'
+    + '<div style="margin-left:auto" class="fin-pills">'
+      + '<button class="'+(view==='kanban'?'on':'')+'" style="padding:6px 13px" onclick="window._cvMainView=\'kanban\';render()">▦ Bảng</button>'
+      + '<button class="'+(view==='list'?'on':'')+'" style="padding:6px 13px" onclick="window._cvMainView=\'list\';render()">☰ Danh sách</button>'
+    + '</div></div>';
+  const sorter={
+    han:(a,b)=>(a['Hạn hoàn thành']||'9999')>(b['Hạn hoàn thành']||'9999')?1:-1,
+    uutien:(a,b)=>(({'Cao':0,'Trung bình':1,'Thấp':2}[a['Ưu tiên']]??1)-({'Cao':0,'Trung bình':1,'Thấp':2}[b['Ưu tiên']]??1)),
+    ten:(a,b)=>String(a['Tên công việc']||'').localeCompare(String(b['Tên công việc']||''),'vi')
+  }[fSort];
+  if(!list.length){ return html+'<div class="empty"><b>Không có đầu việc khớp bộ lọc</b>Đổi bộ lọc, hoặc bấm "+ Tạo đầu việc"</div>'; }
+  if(view==='list'){
+    // Nhóm theo giai đoạn
+    const groups=GIAI_DOAN.map(g=>({g,items:[]})); const other={g:'Ngoài quy trình',items:[]};
+    list.forEach(c=>{const i=GIAI_DOAN.indexOf(c['Giai đoạn']);(i>-1?groups[i]:other).items.push(c);});
+    const all=groups.concat([other]).filter(gr=>gr.items.length);
+    const row=c=>{const dl=daysLeft(c['Hạn hoàn thành']);const hc=c['Trạng thái']==='Hoàn thành'?'':dl===null?'':dl<0?'t-bad':dl<=3?'t-warn':'';
+      return '<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')"><td><b>'+esc(c['Tên công việc'])+'</b><div class="muted">'+esc(projName(c['Mã DA']))+(c['Thầu phụ']?' · ◈ '+esc(c['Thầu phụ']):'')+'</div></td><td>'+esc(c['Phụ trách']||'—')+'</td><td class="muted">'+esc(c['Ngày bắt đầu']||'—')+'</td><td>'+(c['Hạn hoàn thành']?(hc?'<span class="tag '+hc+'">':'')+esc(c['Hạn hoàn thành'])+(hc?'</span>':''):'—')+'</td><td>'+tagUT(c['Ưu tiên'])+'</td><td><div class="bar" style="width:74px"><i style="width:'+(Number(c['Tiến độ (%)'])||0)+'%"></i></div></td><td>'+tagTT(c['Trạng thái'])+'</td></tr>';};
+    html+='<div class="card">';
+    all.forEach(gr=>{gr.items.sort(sorter);const done=gr.items.filter(x=>x['Trạng thái']==='Hoàn thành').length;const gi=GIAI_DOAN.indexOf(gr.g);
+      html+='<div class="phase-head"><span>'+(gi>-1?'GĐ'+(gi+1)+' · ':'')+esc(gr.g)+'</span><span class="cnt">'+done+'/'+gr.items.length+' hoàn thành</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Công việc</th><th>Phụ trách</th><th>Bắt đầu</th><th>Hạn</th><th>Ưu tiên</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead><tbody>'+gr.items.map(row).join('')+'</tbody></table></div>';});
+    html+='</div>';
+    return html;
+  }
+  // ---- Kanban ----
+  const cols=KB_COLS.map(()=>[]);
+  list.forEach(c=>cols[kbColOf(c['Trạng thái'])].push(c));
+  cols.forEach(a=>a.sort(sorter));
+  html+='<div class="kb-wrap">';
+  KB_COLS.forEach((col,i)=>{
+    html+='<div class="kb-col '+col.cls+'"><div class="kb-h">'+esc(col.label)+'<span class="n">'+cols[i].length+'</span></div>'
+      + '<div class="kb-body" id="kb'+i+'" ondragover="kbOver(event,'+i+')" ondragleave="kbLeave('+i+')" ondrop="kbDrop(event,'+i+')">'
+      + (cols[i].length?cols[i].map(c=>kbCard(c,[],canEd)).join(''):'<div class="kb-empty">Kéo đầu việc vào đây</div>')
+      + '</div></div>';
+  });
+  html+='</div>';
   return html;
+}
+
+/* ===== Tổng quan Công việc: donut trạng thái + lịch theo hạn ===== */
+function cvOverview(list){
+  const total=list.length;
+  const cnt=KB_COLS.map((col,i)=>list.filter(c=>kbColOf(c['Trạng thái'])===i).length);
+  const colors=['#8A8175','#2F6DB5','#C0392B','#E0A82E','#4E9A51'];
+  const labels=['Chưa bắt đầu','Đang thực hiện','Đang vướng','Chờ duyệt','Hoàn thành'];
+  let acc=0; const stops=[];
+  cnt.forEach((n,i)=>{ if(total>0 && n>0){ const a=n/total*100; stops.push(colors[i]+' '+acc.toFixed(3)+'% '+(acc+a).toFixed(3)+'%'); acc+=a; } });
+  const donut='<div class="cv-donut" style="background:'+(stops.length?'conic-gradient('+stops.join(',')+')':'#E5E1D8')+'"><div class="cv-donut-hole"><div class="n">'+total+'</div><div class="l">việc</div></div></div>';
+  let cards=''; labels.forEach((lb,i)=>{const pct=total?Math.round(cnt[i]/total*100):0;
+    cards+='<div class="cv-scard" style="border-left-color:'+colors[i]+'"><div class="t"><span class="dot" style="background:'+colors[i]+'"></span>'+lb+'</div><div class="v">'+cnt[i]+' <span>'+pct+'%</span></div></div>';});
+  const left='<div class="cv-ovpanel"><h3>Tình trạng công việc</h3><div class="cv-ovbody">'+donut+'<div class="cv-scards">'+cards+'</div></div></div>';
+  const right='<div class="cv-ovpanel">'+cvCalendar(list)+'</div>';
+  return '<div class="cv-overview">'+left+right+'</div>';
+}
+function cvCalendar(list){
+  const now=new Date(today());
+  const cm=window._calM || (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+  const Y=+cm.split('-')[0], M=+cm.split('-')[1];
+  const first=new Date(Y,M-1,1); const offset=(first.getDay()+6)%7; // Thứ 2 đầu tuần
+  const dim=new Date(Y,M,0).getDate(); const todayStr=today();
+  const due={};
+  list.forEach(c=>{ const h=c['Hạn hoàn thành']; if(!h||!String(h).startsWith(cm)) return;
+    const day=+String(h).split('-')[2]; const done=c['Trạng thái']==='Hoàn thành'; const dl=daysLeft(h);
+    const st=done?'done':(dl<0?'late':'up');
+    (due[day]=due[day]||{late:0,up:0,done:0,items:[]}); due[day][st]++; due[day].items.push(c); });
+  let cells=''; for(let i=0;i<offset;i++) cells+='<div class="cal-day off"></div>';
+  for(let d=1; d<=dim; d++){
+    const ds=Y+'-'+String(M).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const info=due[d]; const isToday=ds===todayStr; const sel=window._calDay===ds;
+    let dot=''; if(info){ const cls=info.late?'late':(info.up?'up':'done'); dot='<span class="cal-dot '+cls+'">'+info.items.length+'</span>'; }
+    cells+='<div class="cal-day'+(isToday?' today':'')+(sel?' sel':'')+(info?' has':'')+'" onclick="window._calDay='+(sel?'null':'\''+ds+'\'')+';render()"><span class="d">'+d+'</span>'+dot+'</div>';
+  }
+  const dows=['T2','T3','T4','T5','T6','T7','CN'];
+  const head='<div class="cal-hd"><b>Tháng '+M+'/'+Y+'</b><span class="cal-nav"><button onclick="cvCalNav(0)">Hôm nay</button><button onclick="cvCalNav(-1)">‹</button><button onclick="cvCalNav(1)">›</button></span></div>';
+  const grid='<div class="cal-dows">'+dows.map(x=>'<span>'+x+'</span>').join('')+'</div><div class="cal-grid">'+cells+'</div>';
+  const legend='<div class="cal-legend"><span><i class="late"></i>Quá hạn</span><span><i class="up"></i>Đang tới</span><span><i class="done"></i>Đã xong</span></div>';
+  let selHtml;
+  const selDay=window._calDay && String(window._calDay).startsWith(cm) ? due[+String(window._calDay).split('-')[2]] : null;
+  if(selDay){ selHtml='<div class="cal-sel"><b>'+fmtDMY(window._calDay)+' — '+selDay.items.length+' việc</b>'
+      + selDay.items.map(c=>'<div class="cal-selrow" onclick="formTask(\''+esc(c['Mã CV'])+'\')">'+tagTT(c['Trạng thái'])+'<span>'+esc(c['Tên công việc'])+'</span></div>').join('')+'</div>';
+  } else { selHtml='<div class="cal-hint">Bấm một ngày để xem đầu việc. Ngày có tô màu là ngày có việc đến hạn.</div>'; }
+  return '<h3>Lịch công việc <span class="muted" style="font-weight:400;font-size:12px">(theo hạn)</span></h3>'+head+grid+legend+selHtml;
+}
+function cvCalNav(dir){
+  if(dir===0){ window._calM=null; render(); return; }
+  const now=new Date(today());
+  const cm=window._calM || (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+  let Y=+cm.split('-')[0], M=+cm.split('-')[1]+dir;
+  if(M<1){M=12;Y--;} if(M>12){M=1;Y++;}
+  window._calM=Y+'-'+String(M).padStart(2,'0'); render();
 }
 
 /* ---------- Trang Chi phí ---------- */
@@ -2199,6 +2313,124 @@ function vExpenses(){
 }
 
 /* ---------- ★ Nhóm 3 — Trang Tiến độ Gantt ---------- */
+/* ================= NHẬP / XUẤT KẾ HOẠCH (EXCEL/CSV) ================= */
+function taskCsvCols(){ return ['STT','Giai đoạn','Tên công việc','Phụ trách','Ngày bắt đầu','Hạn hoàn thành','Ưu tiên','Trạng thái','Tiến độ (%)','Ghi chú']; }
+function csvLine(arr){ return arr.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(','); }
+function dlCsv(rows, name){
+  const csv = '\uFEFF' + rows.map(csvLine).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = name; a.click();
+}
+function taskExport(){
+  const list = visibleTasks().filter(c => !window._ftp || c['Mã DA']===window._ftp);
+  if(!list.length) return toast('Không có công việc để xuất', true);
+  const rows = [taskCsvCols()];
+  list.forEach((c,i)=> rows.push([ i+1, c['Giai đoạn']||'', c['Tên công việc']||'', c['Phụ trách']||'',
+    fmtDMY(c['Ngày bắt đầu']), fmtDMY(c['Hạn hoàn thành']), c['Ưu tiên']||'', c['Trạng thái']||'',
+    Number(c['Tiến độ (%)'])||0, String(c['Ghi chú']||'').replace(/\r?\n/g,' ') ]));
+  const nm = window._ftp ? projName(window._ftp) : 'TatCa';
+  dlCsv(rows, 'MDC_KeHoach_'+String(nm).replace(/[^\wÀ-ỹ]+/g,'_')+'_'+today()+'.csv');
+  toast('✓ Đã xuất '+list.length+' công việc ra Excel (CSV)');
+}
+function taskImportTemplate(){
+  dlCsv([ taskCsvCols(),
+    ['1','Thi công lắp đặt','VD: Đổ bê tông sàn 2','Nguyễn Văn A','01/09/2026','10/09/2026','Cao','Chưa bắt đầu','0','Ghi chú nếu có'] ],
+    'MDC_MauKeHoach.csv');
+  toast('✓ Đã tải file mẫu — mở bằng Excel, điền rồi Lưu dạng "CSV UTF-8"');
+}
+function taskImportOpen(){
+  if(!window._ftp){ toast('Hãy chọn 1 dự án ở bộ lọc trước khi nhập kế hoạch', true); return; }
+  window.__impRows = null;
+  const body = '<div class="muted" style="margin-bottom:10px;line-height:1.55">Nhập nhiều công việc cùng lúc cho dự án <b>'+esc(projName(window._ftp))+'</b>. '
+    + 'Tải file mẫu → mỗi dòng một việc → lưu dạng CSV (UTF-8) → chọn file. Hệ thống kiểm tra từng dòng, xem trước rồi bấm Lưu.</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    + '<button type="button" class="btn btn-ghost" onclick="taskImportTemplate()">⬇ Tải file mẫu CSV</button>'
+    + '<label class="btn btn-ghost" style="cursor:pointer">📂 Chọn file CSV<input type="file" accept=".csv,text/csv" style="display:none" onchange="taskImportParse(this)"></label>'
+    + '</div><div id="impPreview"></div>';
+  openModal('Nhập kế hoạch từ Excel', body, taskImportConfirm);
+  document.getElementById('modalSave').classList.add('hide');
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', q=false; text=String(text).replace(/^\uFEFF/,'');
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ row.push(cur); cur=''; }
+    else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+    else if(ch==='\r'){ /* bỏ qua */ }
+    else cur+=ch; }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+function impDate(s){ s=String(s||'').trim(); if(!s) return '';
+  let y,mo,da, m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(m){ da=+m[1]; mo=+m[2]; y=+m[3]; }
+  else { m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if(!m) return null; y=+m[1]; mo=+m[2]; da=+m[3]; }
+  if(mo<1||mo>12||da<1||da>31) return null;
+  const dt=new Date(y, mo-1, da);
+  if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==da) return null; // loại ngày không tồn tại (vd 31/02)
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(da).padStart(2,'0'); }
+function impUT(s){ s=String(s||'').trim().toLowerCase();
+  if(s==='cao') return 'Cao'; if(s==='thấp'||s==='thap') return 'Thấp';
+  if(s==='tb'||s==='trung bình'||s==='trung binh'||s==='') return 'Trung bình';
+  return UU_TIEN.includes(String(s))?String(s):'Trung bình'; }
+function impTT(s){ s=String(s||'').trim(); return TT_CV.includes(s)?s:'Chưa bắt đầu'; }
+function taskImportParse(inputEl){
+  const file = inputEl.files && inputEl.files[0]; if(!file) return;
+  const pv = document.getElementById('impPreview');
+  const rd = new FileReader();
+  rd.onload = () => {
+    let rows; try { rows = parseCSV(rd.result); } catch(e){ pv.innerHTML='<span class="tag t-bad">Không đọc được file</span>'; return; }
+    if(rows.length < 2){ pv.innerHTML='<span class="tag t-bad">File rỗng hoặc thiếu dòng dữ liệu</span>'; return; }
+    const head = rows[0].map(h=>String(h).trim().toLowerCase());
+    const find = names => head.findIndex(h => names.some(n=>h.includes(n)));
+    const iGD=find(['giai đoạn','giai doan','hạng mục','hang muc']);
+    const iTen=find(['tên đầu việc','tên công việc','ten cong viec','ten dau viec','tên việc']);
+    const iPT=find(['phụ trách','phu trach','người phụ']);
+    const iBD=find(['ngày bắt đầu','bat dau','bắt đầu']);
+    const iHan=find(['hạn hoàn thành','han hoan thanh','hạn','deadline']);
+    const iUT=find(['ưu tiên','uu tien']);
+    const iTT=find(['trạng thái','trang thai']);
+    const iTD=find(['tiến độ','tien do','%']);
+    const iGC=find(['ghi chú','ghi chu','mô tả','mo ta','định nghĩa','dinh nghia']);
+    if(iTen<0){ pv.innerHTML='<span class="tag t-bad">Không tìm thấy cột "Tên công việc / Tên đầu việc"</span>'; return; }
+    const g=(row,k)=> k>-1 ? String(row[k]||'').trim() : '';
+    const drafts=[]; let okN=0;
+    for(let r=1;r<rows.length;r++){ const row=rows[r]; const ten=g(row,iTen); if(!ten) continue;
+      const bd=iBD>-1?impDate(g(row,iBD)):''; const han=iHan>-1?impDate(g(row,iHan)):'';
+      const errs=[]; if(bd===null) errs.push('Ngày bắt đầu sai (dd/mm/yyyy)'); if(han===null) errs.push('Hạn sai (dd/mm/yyyy)');
+      const d={ ten, gd:g(row,iGD)||GIAI_DOAN[1], pt:g(row,iPT), bd:bd||'', han:han||'', ut:impUT(g(row,iUT)),
+        tt:impTT(g(row,iTT)), td:Math.max(0,Math.min(100,Number(g(row,iTD))||0)), gc:g(row,iGC), errs };
+      if(!errs.length) okN++; drafts.push(d);
+    }
+    window.__impRows = drafts;
+    let h='<div style="margin:6px 0 8px;font-size:13px"><b>'+drafts.length+'</b> dòng · <span style="color:#2E6B3E"><b>'+okN+'</b> hợp lệ</span>'+((drafts.length-okN)?' · <span style="color:#B23A2E"><b>'+(drafts.length-okN)+'</b> lỗi</span>':'')+'</div>';
+    h+='<div class="tbl-wrap" style="max-height:320px;overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>Tên công việc</th><th>Giai đoạn</th><th>Phụ trách</th><th>Bắt đầu</th><th>Hạn</th><th>Ưu tiên</th><th>Trạng thái</th><th>Kiểm tra</th></tr></thead><tbody>';
+    drafts.forEach((d,i)=>{ h+='<tr'+(d.errs.length?' style="background:#FDEEEC"':'')+'><td class="muted">'+(i+1)+'</td><td><b>'+esc(d.ten)+'</b>'+(d.gc?'<div class="muted" style="font-size:11px">'+esc(d.gc)+'</div>':'')+'</td><td>'+esc(d.gd)+'</td><td>'+esc(d.pt||'—')+'</td><td>'+esc(fmtDMY(d.bd)||'—')+'</td><td>'+esc(fmtDMY(d.han)||'—')+'</td><td>'+esc(d.ut)+'</td><td>'+esc(d.tt)+'</td><td>'+(d.errs.length?'<span class="tag t-bad">'+esc(d.errs.join('; '))+'</span>':'<span class="tag t-ok">OK</span>')+'</td></tr>'; });
+    h+='</tbody></table></div>';
+    if(okN) h+='<div class="muted" style="margin-top:8px">Bấm <b>Lưu</b> để nhập '+okN+' công việc hợp lệ vào <b>'+esc(projName(window._ftp))+'</b>. Dòng lỗi được bỏ qua.</div>';
+    pv.innerHTML=h;
+    document.getElementById('modalSave').classList.toggle('hide', okN===0);
+  };
+  rd.readAsText(file,'UTF-8');
+}
+function taskImportConfirm(){
+  const drafts=(window.__impRows||[]).filter(d=>!d.errs.length);
+  if(!drafts.length){ toast('Không có dòng hợp lệ để nhập', true); return; }
+  const da=window._ftp; let n=0;
+  drafts.forEach(d=>{
+    const rec={ 'Mã CV':'', 'Mã DA':da, 'Tên công việc':d.ten, 'Giai đoạn':d.gd, 'Phụ trách':d.pt,
+      'Ngày bắt đầu':d.bd, 'Hạn hoàn thành':d.han, 'Ưu tiên':d.ut, 'Trạng thái':d.tt, 'Tiến độ (%)':d.td, 'Ghi chú':d.gc };
+    rec['Mã CV']=tempCode('CV', S.congviec, 'Mã CV');
+    S.congviec.push(rec);
+    pushOp('saveTask', rec);
+    n++;
+  });
+  window.__impRows=null; closeModal();
+  toast('✓ Đã nhập '+n+' công việc vào kế hoạch');
+}
+
 function vGantt(){
   const myDuan = visibleProjects();
   const myCV = visibleTasks();
