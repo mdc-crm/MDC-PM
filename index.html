@@ -325,6 +325,12 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .cal-selrow{padding:5px 6px;font-size:12px;border-radius:5px;cursor:pointer;display:flex;gap:6px;align-items:center}
 .cal-selrow:hover{background:var(--paper)}
 /* ★ Biên bản nghiệm thu — mẫu chọn loại + trang in */
+.kb-dod{font-size:11px;color:#2E6B3E;background:#EAF3EC;border-radius:5px;padding:2px 6px;margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-tg{font-size:10.5px;color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:1px 7px}
+.tvp-list{display:flex;flex-wrap:wrap;gap:6px}
+.tvp-chip{padding:5px 11px;border:1px solid var(--line-strong);border-radius:14px;font-size:12.5px;cursor:pointer;background:var(--card);color:var(--ink-soft);user-select:none}
+.tvp-chip:hover{border-color:var(--brass)}
+.tvp-chip.on{background:var(--brass);color:#fff;border-color:var(--brass-deep);font-weight:600}
 .bb-loai-list{display:grid;gap:8px}
 .bb-loai-card{border:1.5px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;background:var(--card)}
 .bb-loai-card b{display:block;font-size:13px}
@@ -3768,6 +3774,19 @@ function formProject(code){
 }
 
 /* ----- Công việc ----- */
+function tvParticipants(cur){
+  const chosen = new Set(String(cur||'').split(',').map(s=>s.trim()).filter(Boolean));
+  const staff = [...new Set((S.nhansu||[]).map(n=>n['Họ tên']).filter(Boolean))];
+  chosen.forEach(nm=>{ if(!staff.includes(nm)) staff.push(nm); }); // giữ tên cũ dù không còn trong DS
+  const chips = staff.map(nm=>'<span class="tvp-chip'+(chosen.has(nm)?' on':'')+'" onclick="tvpToggle(this)">'+esc(nm)+'</span>').join('');
+  return '<input type="hidden" id="tNguoiTG" value="'+esc([...chosen].join(', '))+'">'
+    + '<div class="tvp-list">'+(chips||'<span class="muted" style="font-size:12px">Chưa có nhân sự trong hệ thống</span>')+'</div>';
+}
+function tvpToggle(el){
+  el.classList.toggle('on');
+  const names=[...el.parentElement.querySelectorAll('.tvp-chip.on')].map(x=>x.textContent);
+  const h=document.getElementById('tNguoiTG'); if(h) h.value=names.join(', ');
+}
 function formTask(code){
   const c = code ? S.congviec.find(x=>x['Mã CV']===code) : null;
   const isNew = !c;
@@ -3785,6 +3804,7 @@ function formTask(code){
     + '<div class="grid2">'
     + fld('Giai đoạn', sel('tGD', GIAI_DOAN, c?.['Giai đoạn']||GIAI_DOAN[1]))
     + fld('Phụ trách', selStaff('tPT', c?.['Phụ trách']||user['Họ tên']))
+    + fld('Người tham gia <span class="muted">(nhiều người — bấm để chọn/bỏ)</span>', tvParticipants(c?.['Người tham gia']))
     + fld('Thầu phụ / Đối tác <span class="muted">(chọn hoặc gõ tên mới)</span>', inpThauPhu('tTP', c?.['Thầu phụ']||''))
     + fld('Ngày bắt đầu', inp('tBD', c?.['Ngày bắt đầu'],'date'))
     + fld('Hạn hoàn thành', inp('tHan', c?.['Hạn hoàn thành'],'date'))
@@ -3792,6 +3812,7 @@ function formTask(code){
     + fld('Ưu tiên', sel('tUT', UU_TIEN, c?.['Ưu tiên']||'Trung bình'))
     + fld('Trạng thái', sel('tTT', TT_CV, c?.['Trạng thái']||'Chưa bắt đầu').replace('<select id="tTT"','<select id="tTT" onchange="tOnPickTT()"'))
     + fld('Tiến độ (%)', inp('tTD', c?.['Tiến độ (%)']||0,'number'))
+    + fld('Điều kiện hoàn thành <span class="muted">(DoD — làm gì mới coi là XONG)</span>', '<textarea id="tDKHT" rows="2" placeholder="vd: Nghiệm thu nội bộ đạt · có ảnh hiện trường · CĐT xác nhận">'+esc(c?.['Điều kiện hoàn thành']||'')+'</textarea>')
     + '</div>'
     + '<div id="tVuongWrap" style="'+((c?.['Trạng thái']==='Đang vướng'||c?.['Trạng thái']==='Từ chối')?'':'display:none')+'">'
       + fld('🚧 Vướng mắc / nội dung cần chỉnh sửa <span class="muted">(hiện lên thẻ Kanban)</span>',
@@ -3818,6 +3839,7 @@ function formTask(code){
       const rec = {'Mã CV': code||'','Mã DA':V('tDA'),'Tên công việc':V('tTen'),'Giai đoạn':V('tGD'),
         'Phụ trách':V('tPT'),'Thầu phụ':V('tTP'),'Ngày bắt đầu':V('tBD'),'Hạn hoàn thành':V('tHan'),'Ngày hoàn thành':ngayHT,
         'Ưu tiên':V('tUT'),'Trạng thái':tt,'Tiến độ (%)':td,'Ghi chú':V('tGC'),'Mã HM':V('tHM'),
+        'Người tham gia':V('tNguoiTG'),'Điều kiện hoàn thành':V('tDKHT'),
         'Lý do vướng':(tt==='Đang vướng'||tt==='Từ chối')?V('tVuong'):''};
       rec['Người duyệt được giao'] = nguoiDuyet;
       rec['Ảnh'] = JSON.stringify(window.__photos || []);
@@ -5726,14 +5748,17 @@ function kbCard(c, hm, canEd){
   const nguoi = c['Phụ trách']||'';
   const col = kbColOf(c['Trạng thái']);
   const note = (col===2 && c['Lý do vướng']) ? c['Lý do vướng'] : '';
+  const tg = String(c['Người tham gia']||'').split(',').map(s=>s.trim()).filter(Boolean);
   return '<div class="kb-card '+pri+'" draggable="'+(canEd?'true':'false')+'"'
     + ' ondragstart="kbStart(event,\''+esc(c['Mã CV'])+'\')" ondragend="kbEnd(event)"'
     + ' onclick="formTask(\''+esc(c['Mã CV'])+'\')">'
     + (h?'<div class="kb-hm">'+esc(h['Tên hạng mục'])+'</div>':(c['Giai đoạn']?'<div class="kb-hm">'+esc(c['Giai đoạn'])+'</div>':''))
     + '<div class="kb-t">'+esc(c['Tên công việc'])+'</div>'
+    + (c['Điều kiện hoàn thành']?'<div class="kb-dod" title="Điều kiện hoàn thành">🎯 '+esc(c['Điều kiện hoàn thành'])+'</div>':'')
     + (note?'<div class="kb-note"><b>Cần chỉnh sửa:</b> '+esc(note)+'</div>':'')
     + '<div class="kb-f">'
       + (nguoi?'<span class="kb-av" style="background:'+avColor(nguoi)+'" title="'+esc(nguoi)+'">'+esc(iniOf(nguoi))+'</span>':'')
+      + (tg.length?'<span class="kb-tg" title="Người tham gia: '+esc(tg.join(', '))+'">👥 +'+tg.length+'</span>':'')
       + (dueTxt?'<span class="kb-due '+dueCls+'">🕐 '+dueTxt+'</span>':'')
       + (canEd?'<span class="kb-mv">'
         + (col>0?'<button title="Chuyển sang '+esc(KB_COLS[col-1].label)+'" onclick="event.stopPropagation();kbMove(\''+esc(c['Mã CV'])+'\',-1)">‹</button>':'')
