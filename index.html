@@ -122,6 +122,10 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .proj-card{padding:15px 18px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
 .proj-card:hover{background:#FBF9F5}
 .proj-card:last-child{border-bottom:none}
+.proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.proj-grid .proj-card{border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.proj-grid .proj-card:hover{background:#FBF9F5}
+@media(max-width:820px){.proj-grid{grid-template-columns:1fr}}
 .proj-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .proj-top b{font-size:14.5px}
 .proj-meta{font-size:12px;color:var(--ink-soft);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
@@ -254,7 +258,6 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .gantt-print-head{display:none}
 #ganttPrintHolder{display:none}
 @media print{
-  @page{size:A4 landscape;margin:9mm}
   body.print-gantt{background:#fff!important}
   body.print-gantt>*{display:none!important}
   body.print-gantt>#ganttPrintHolder{display:block!important;position:absolute;left:0;top:0;width:100%}
@@ -321,6 +324,34 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .cal-sel b{font-size:12.5px}
 .cal-selrow{padding:5px 6px;font-size:12px;border-radius:5px;cursor:pointer;display:flex;gap:6px;align-items:center}
 .cal-selrow:hover{background:var(--paper)}
+/* ★ Biên bản nghiệm thu — mẫu chọn loại + trang in */
+.bb-loai-list{display:grid;gap:8px}
+.bb-loai-card{border:1.5px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;background:var(--card)}
+.bb-loai-card b{display:block;font-size:13px}
+.bb-loai-card span{font-size:11.5px;color:var(--ink-soft)}
+.bb-loai-card.on{border-color:var(--brass);background:var(--brass-soft)}
+#docPrintHolder{display:none}
+.doc-print{display:none}
+.doc-head{text-align:center;margin-bottom:6px}
+.doc-org{font-weight:800;font-size:14px}
+.doc-sub{font-size:11px;color:#555}
+.doc-title{text-align:center;font-size:22px;margin:14px 0 2px}
+.doc-loai{text-align:center;font-size:13px;font-style:italic;margin-bottom:16px}
+.doc-info{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px}
+.doc-info td{border:1px solid #999;padding:6px 9px;vertical-align:top}
+.doc-info td.k{width:32%;font-weight:600;background:#f3f3f3}
+.doc-sec{margin:10px 0;font-size:13px}
+.doc-sec p{margin:4px 0 0;white-space:pre-wrap}
+.doc-sign{display:flex;gap:20px;margin-top:34px;text-align:center;font-size:12px}
+.doc-sign>div{flex:1}
+.doc-sign .ln{height:58px}
+.doc-sign .nm{border-top:1px dotted #999;padding-top:3px}
+.doc-foot{margin-top:26px;text-align:right;font-size:11px;color:#666}
+@media print{
+  body.print-doc>*{display:none!important}
+  body.print-doc>#docPrintHolder{display:block!important;position:absolute;left:0;top:0;width:100%}
+  #docPrintHolder .doc-print{display:block;font-family:Arial;color:#111}
+}
 
 /* ★ Nhóm 3 — Thầu phụ card */
 .sub-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .12s}
@@ -1149,6 +1180,13 @@ const DOC_DESC    = {
 };
 const TT_DOC      = ['Nháp','Chờ lãnh đạo phê duyệt','Đã phê duyệt','Đã ban hành','Đã ký','Hết hiệu lực'];
 const LOAI_AT     = ['Tai nạn lao động','Sự cố an toàn','Kiểm tra định kỳ','Huấn luyện AT','Vi phạm quy định','Khác'];
+const LOAI_BB = [
+  {k:'Nghiệm thu công việc xây dựng', d:'Nghiệm thu từng công việc trong quá trình thi công (cốt thép, cốp pha, tô, ốp lát…)'},
+  {k:'Kiểm tra định vị móng, công trình ngầm, cốt xây dựng', d:'Ranh, lộ giới, khoảng lùi, hầm tự hoại, cao độ nền — kiểm tra trước khi thi công móng'},
+  {k:'Nghiệm thu hoàn thành bộ phận / giai đoạn thi công', d:'Nghiệm thu xong một bộ phận hoặc một giai đoạn (phần móng, phần thô, hoàn thiện…)'},
+  {k:'Nghiệm thu bàn giao công trình đưa vào sử dụng', d:'Bàn giao toàn bộ công trình cho chủ đầu tư khi hoàn thành'}
+];
+const TT_BB = ['Nháp','Đạt','Không đạt','Chờ ký','Đã ký'];
 const TT_AT       = ['Ghi nhận','Đang xử lý','Đã xử lý','Đóng'];
 
 /* ---------- Lưu trữ cục bộ ---------- */
@@ -1254,6 +1292,7 @@ async function syncAll(manual){
       S.thaubo = j.thaubo||[]; S.lichhen = j.lichhen||[];
       // v2.0 — các module mới (backend sẽ bổ sung dần; fallback [] nếu chưa có)
       S.hientruong = j.hientruong||S.hientruong||[];
+      S.bienban    = j.bienban   ||S.bienban   ||[];
       S.muasam     = j.muasam    ||S.muasam    ||[];
       S.phatsinh   = j.phatsinh  ||S.phatsinh  ||[];
       S.hosoTL     = j.hosoTL    ||S.hosoTL    ||[];
@@ -1468,6 +1507,7 @@ const NAV_GROUPS = [
     {id:'khachhang', name:'Khách hàng',      icon:'◎'},
     {id:'duan',      name:'Dự án',           icon:'▤'},
     {id:'hientruong',name:'Hiện trường',     icon:'📍'},
+    {id:'bienban',   name:'Biên bản nghiệm thu', icon:'📝'},
     {id:'thaubo',    name:'Thầu phụ',        icon:'◈'},
     {id:'muasam',    name:'Mua sắm',         icon:'🛒'},
     {id:'phatsinh',  name:'Phát sinh HĐ',   icon:'📋'},
@@ -1539,8 +1579,8 @@ function go(view){
     ? 'Chi tiết dự án' : ((VIEWS.find(v=>v.id===view)||{}).name || '');
   const btnAdd = document.getElementById('btnAdd');
   const addable = {
-    duan:can('edit')||capBacRank_(user['Vai trò'])!=='nhanvien',
-    congviec:false, chiphi:true, nhansu:can('staff'),
+    duan:false,
+    congviec:false, chiphi:true, nhansu:can('staff'), bienban:can('edit'),
     thaubo:can('edit'), lichhen:true,
     khachhang:false, // readonly mirror CRM
     hientruong:true, muasam:can('edit'), phatsinh:can('edit'),
@@ -1555,14 +1595,14 @@ function onAddClick(){
     duan: formProject, congviec: formTask, chiphi: formExpense,
     nhansu: formStaff, thaubo: formSubcontractor, lichhen: formAppointment,
     hientruong: formSiteLog, muasam: formPurchase, phatsinh: formVariation,
-    hosoTL: formDocument, anToanCL: formSafetyRecord, khongPH: formNC, ruiro: formRisk
+    hosoTL: formDocument, anToanCL: formSafetyRecord, khongPH: formNC, ruiro: formRisk, bienban: formBienBan
   };
   if(map[currentView]) map[currentView]();
 }
 function render(){
   const root = document.getElementById('viewRoot');
   const fn = {
-    dashboard:vDashboard, duan:vProjects, congviec:vTasks, gantt:vGantt,
+    dashboard:vDashboard, duan:vProjects, congviec:vTasks, gantt:vGantt, bienban:vBienBan,
     chiphi:vExpenses, lichhen:vAppointments, thaubo:vSubcontractors,
     nhansu:vStaff, caidat:vSettings, kiemtra:vDataHealth,
     // v2.0 mới
@@ -2133,7 +2173,7 @@ function projCard(d){
   const pct = ap ? ap.pct : (Number(d['Tiến độ (%)'])||0);
   const overdue = projOverdueCount(d['Mã DA']);
   return '<div class="proj-card" onclick="openProject(\''+d['Mã DA']+'\')">'
-    + '<div class="proj-top"><div><b>'+esc(d['Tên dự án'])+'</b><div class="proj-meta"><span>'+esc(d['Khách hàng']||'')+'</span><span>'+esc(d['Loại hình']||'')+'</span><span>PT: '+esc(d['Phụ trách']||'—')+'</span></div></div>'
+    + '<div class="proj-top"><div><b>'+esc(d['Tên dự án'])+'</b> '+tagTT(d['Trạng thái']||'Đang triển khai')+'<div class="proj-meta"><span>'+esc(d['Khách hàng']||'')+'</span><span>'+esc(d['Loại hình']||'')+'</span><span>PT: '+esc(d['Phụ trách']||'—')+'</span></div></div>'
     + '<div style="text-align:right"><span class="tag t-brass">'+esc(d['Giai đoạn']||'—')+'</span>'
     + '<div class="muted" style="margin-top:4px">Chi '+fmtTr(chi)+(ns?' / NS '+fmtTr(ns):'')+(over?' <span class="tag t-bad" style="font-size:10px">Vượt NS</span>':'')+'</div></div></div>'
     + '<div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px"><div class="bar" style="flex:1"><i style="width:'+pct+'%"></i></div>'
@@ -2143,15 +2183,47 @@ function projCard(d){
 }
 
 /* ---------- Trang Dự án ---------- */
+function projIsRisk(d){
+  const chi=projCost(d['Mã DA']).tong; const ns=Number(d['Ngân sách (đ)'])||0;
+  return (ns>0 && chi>ns) || projOverdueCount(d['Mã DA'])>0;
+}
 function vProjects(){
   const myDuan = visibleProjects();
-  let html = leadSection() + '<div class="toolbar"><input id="fProj" placeholder="Tìm tên dự án, khách hàng…" oninput="render()" value="'+esc(window._fp||'')+'">'
-    + '<select id="fProjTT" onchange="render()">' + opt(['Tất cả trạng thái',...TT_DUAN], window._fpt||'') + '</select></div>';
-  window._fp = (document.getElementById('fProj')||{}).value ?? window._fp ?? '';
-  const q = (window._fp||'').toLowerCase();
-  const tt = window._fpt = (document.getElementById('fProjTT')||{}).value ?? window._fpt ?? '';
-  let list = myDuan.filter(d => (!q || (d['Tên dự án']+' '+d['Khách hàng']).toLowerCase().includes(q)) && (!tt || tt==='Tất cả trạng thái' || d['Trạng thái']===tt));
-  html += '<div class="card">' + (list.length ? list.map(projCard).join('') : '<div class="empty"><b>Không có dự án phù hợp</b>'+(capBacRank_(user['Vai trò'])==='nhanvien'?'Bạn chỉ thấy dự án được phân làm thành viên.':'Bấm "+ Thêm mới" để tạo dự án')+'</div>') + '</div>';
+  const q=(window._fp||'').toLowerCase(), loai=window._fpLoai||'', pill=window._fpPill||'all';
+  const total=myDuan.length;
+  const nTrien=myDuan.filter(d=>d['Trạng thái']==='Đang triển khai').length;
+  const nRisk=myDuan.filter(projIsRisk).length;
+  const nDone=myDuan.filter(d=>d['Trạng thái']==='Hoàn thành').length;
+  const nCB=myDuan.filter(d=>!tvSong(S.congviec).some(c=>c['Mã DA']===d['Mã DA'])).length;
+  const canNew=can('edit')||capBacRank_(user['Vai trò'])!=='nhanvien';
+  // Header
+  let html='<div class="cv-head"><div><h2 style="margin:0">Dự án</h2><div class="muted" style="font-size:13px;margin-top:2px">Tất cả dự án và trạng thái tiến độ</div></div>'
+    + (canNew?'<button class="btn btn-brass" onclick="formProject()">+ Tạo dự án</button>':'')+'</div>';
+  html += leadSection();
+  // KPI
+  html+='<div class="kpis">'
+    + kpi('Tổng dự án', total, nCB+' đang chuẩn bị')
+    + kpi('Đang triển khai', nTrien, 'trên tổng '+total+' dự án','accent')
+    + kpi('Rủi ro cao', nRisk, nRisk?'vượt ngân sách / có việc trễ':'không có dự án rủi ro cao', nRisk?'bad':'')
+    + kpi('Hoàn thành / bàn giao', nDone, 'đã nghiệm thu / đóng')
+    + '</div>';
+  // Bộ lọc: pills + tìm + loại dự án
+  const loaiList=[...new Set(myDuan.map(d=>d['Loại hình']).filter(Boolean))];
+  html+='<div class="cv-filter">'
+    + '<button class="cv-pill'+(pill==='all'?' on':'')+'" onclick="window._fpPill=\'all\';render()">Tất cả ('+total+')</button>'
+    + '<button class="cv-pill'+(pill==='trienkhai'?' on':'')+'" onclick="window._fpPill=\'trienkhai\';render()">Đang triển khai ('+nTrien+')</button>'
+    + '<button class="cv-pill'+(pill==='rui'?' on':'')+'" onclick="window._fpPill=\'rui\';render()">Rủi ro cao ('+nRisk+')</button>'
+    + '<input id="fProj" placeholder="🔍 Tìm dự án, khách hàng…" value="'+esc(window._fp||'')+'" onchange="window._fp=this.value;render()" style="min-width:180px">'
+    + '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px"><span class="muted" style="font-size:12px">LOẠI DỰ ÁN</span>'
+      + '<select onchange="window._fpLoai=this.value;render()"><option value="">Tất cả ('+total+')</option>'+loaiList.map(l=>'<option'+(loai===l?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></span>'
+    + '</div>';
+  let list=myDuan.filter(d=>
+    (!q || (String(d['Tên dự án'])+' '+String(d['Khách hàng']||'')).toLowerCase().includes(q))
+    && (!loai || d['Loại hình']===loai)
+    && (pill==='all' || (pill==='trienkhai' ? d['Trạng thái']==='Đang triển khai' : projIsRisk(d)))
+  );
+  html += list.length ? '<div class="proj-grid">'+list.map(projCard).join('')+'</div>'
+    : '<div class="empty"><b>Không có dự án phù hợp</b>'+(capBacRank_(user['Vai trò'])==='nhanvien'?'Bạn chỉ thấy dự án được phân làm thành viên.':'Đổi bộ lọc hoặc bấm "+ Tạo dự án"')+'</div>';
   return html;
 }
 
@@ -2577,7 +2649,9 @@ function vGantt(){
 // Chuyển lớp hiển thị Gantt (Kế hoạch / Thực tế / cả hai)
 function gLayer(v){ window._gLayer = v; render(); }
 // Xuất PDF sơ đồ Gantt: nhân bản vùng biểu đồ ra ngoài body rồi gọi hộp thoại in (Lưu dạng PDF)
+function setPrintPage(o){ let s=document.getElementById('printPageStyle'); if(!s){ s=document.createElement('style'); s.id='printPageStyle'; document.head.appendChild(s); } s.textContent='@page{size:A4 '+o+';margin:'+(o==='landscape'?'9mm':'14mm')+'}'; }
 function printGantt(){
+  setPrintPage('landscape');
   const area = document.getElementById('ganttPrintArea');
   if(!area){ window.print(); return; }
   const old = document.getElementById('ganttPrintHolder'); if(old) old.remove();
@@ -5052,6 +5126,117 @@ function formSafetyRecord(code){
     },
     (!isNew&&can('deleteAny'))?function(){if(!confirm('Xóa?'))return;S.anToanCL=(S.anToanCL||[]).filter(t=>t['Mã AT']!==code);closeModal();pushOp('deleteSafetyRecord',{code});toast('Đã xóa');}:null
   );
+}
+
+/* ================================================================
+   ★ Biên bản nghiệm thu — 4 mẫu chuẩn xây dựng + in PDF
+================================================================ */
+function vBienBan(){
+  const all = S.bienban||[];
+  let html = '<div class="cv-head"><div><h2 style="margin:0">Biên bản nghiệm thu</h2>'
+    + '<div class="muted" style="font-size:13px;margin-top:2px">Lập, lưu và in biên bản nghiệm thu theo mẫu chuẩn · '+all.length+' biên bản</div></div>'
+    + (can('edit')?'<button class="btn btn-brass" onclick="formBienBan()">+ Lập biên bản</button>':'')+'</div>';
+  html += '<div class="cv-filter"><select onchange="window._bbDA=this.value;render()"><option value="">Tất cả dự án</option>'
+    + S.duan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._bbDA===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('')+'</select>'
+    + '<select onchange="window._bbTT=this.value;render()">'+opt(['Tất cả trạng thái',...TT_BB],window._bbTT||'')+'</select></div>';
+  let list = all.filter(x=>(!window._bbDA||x['Mã DA']===window._bbDA)&&(!window._bbTT||window._bbTT==='Tất cả trạng thái'||x['Trạng thái']===window._bbTT))
+    .sort((a,b)=>(b['Ngày nghiệm thu']||'')>(a['Ngày nghiệm thu']||'')?1:-1);
+  const dat=all.filter(x=>x['Trạng thái']==='Đạt'||x['Trạng thái']==='Đã ký').length;
+  const kdat=all.filter(x=>x['Trạng thái']==='Không đạt').length;
+  const choky=all.filter(x=>x['Trạng thái']==='Chờ ký').length;
+  html += '<div class="kpis">'
+    + kpi('Tổng biên bản', all.length, 'đã lập')
+    + kpi('Đạt / Đã ký', dat, 'nghiệm thu đạt','accent')
+    + kpi('Không đạt', kdat, kdat?'cần khắc phục':'—', kdat?'bad':'')
+    + kpi('Chờ ký', choky, 'chờ hoàn tất')
+    + '</div>';
+  if(!list.length) return html+'<div class="empty"><b>Chưa có biên bản</b>Bấm "+ Lập biên bản" và chọn 1 trong 4 mẫu chuẩn (công việc · định vị móng · hoàn thành bộ phận · bàn giao)</div>';
+  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mã</th><th>Loại biên bản</th><th>Đối tượng nghiệm thu</th><th>Dự án</th><th>Ngày</th><th>Trạng thái</th><th></th></tr></thead><tbody>';
+  html += list.map(x=>'<tr class="row-click" onclick="formBienBan(\''+esc(x['Mã BB'])+'\')">'
+    + '<td class="muted">'+esc(x['Mã BB'])+'</td>'
+    + '<td><b>'+esc(x['Loại biên bản']||'—')+'</b></td>'
+    + '<td>'+esc(x['Đối tượng nghiệm thu']||'—')+'</td>'
+    + '<td class="muted">'+esc(projName(x['Mã DA']))+'</td>'
+    + '<td class="muted">'+esc(fmtDMY(x['Ngày nghiệm thu'])||'—')+'</td>'
+    + '<td>'+tagTT(x['Trạng thái']||'Nháp')+'</td>'
+    + '<td><button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="event.stopPropagation();bbPrint(\''+esc(x['Mã BB'])+'\')">⎙ In</button></td></tr>').join('');
+  html += '</tbody></table></div></div></div>';
+  return html;
+}
+function bbPickLoai(el, k){
+  document.querySelectorAll('.bb-loai-card').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const h=document.getElementById('bbLoai'); if(h) h.value=k;
+}
+function formBienBan(code){
+  const x = code ? (S.bienban||[]).find(t=>t['Mã BB']===code) : null;
+  const isNew = !x;
+  const curLoai = x?.['Loại biên bản'] || LOAI_BB[0].k;
+  const cards = LOAI_BB.map(l=>'<div class="bb-loai-card'+(l.k===curLoai?' on':'')+'" onclick="bbPickLoai(this,\''+esc(l.k).replace(/'/g,"\\'")+'\')"><b>'+esc(l.k)+'</b><span>'+esc(l.d)+'</span></div>').join('');
+  openModal(isNew?'Lập biên bản nghiệm thu':'Biên bản '+code,
+    '<input type="hidden" id="bbLoai" value="'+esc(curLoai)+'">'
+    + '<div class="field"><label>Loại biên bản — chọn mẫu</label><div class="bb-loai-list">'+cards+'</div></div>'
+    + '<div class="grid2">'
+      + fld('Thuộc dự án *', selProj('bbDA', x?.['Mã DA']||window._bbDA||''))
+      + fld('Ngày nghiệm thu', inp('bbNgay', x?.['Ngày nghiệm thu']||today(),'date'))
+    + '</div>'
+    + fld('Đối tượng nghiệm thu *', inp('bbDT', x?.['Đối tượng nghiệm thu'],'text','VD: Cốt thép sàn tầng 2 trục A–D'))
+    + '<div class="grid2">'
+      + fld('Từ giờ', inp('bbTu', x?.['Từ giờ'],'time'))
+      + fld('Đến giờ', inp('bbDen', x?.['Đến giờ'],'time'))
+    + '</div>'
+    + fld('Địa điểm <span class="muted">(để trống = địa chỉ dự án)</span>', inp('bbDD', x?.['Địa điểm']))
+    + fld('Thành phần tham gia', '<textarea id="bbTP" rows="2" placeholder="CĐT, tư vấn giám sát, nhà thầu, đơn vị thi công…">'+esc(x?.['Thành phần tham gia']||'')+'</textarea>')
+    + fld('Nội dung / hạng mục nghiệm thu', '<textarea id="bbND" rows="3" placeholder="Mô tả khối lượng, quy cách, tiêu chuẩn áp dụng…">'+esc(x?.['Nội dung']||'')+'</textarea>')
+    + fld('Kết luận', '<textarea id="bbKL" rows="2" placeholder="Đạt yêu cầu / Cần khắc phục các điểm…">'+esc(x?.['Kết luận']||'')+'</textarea>')
+    + '<div class="grid2">'
+      + fld('Trạng thái', sel('bbTT', TT_BB, x?.['Trạng thái']||'Nháp'))
+      + fld('Người lập', inp('bbNguoi', x?.['Người lập']||user['Họ tên']))
+    + '</div>',
+    function save(){
+      if(!V('bbDA')) return toast('Chưa chọn dự án', true);
+      if(!V('bbDT')) return toast('Chưa nhập đối tượng nghiệm thu', true);
+      const rec={'Mã BB':code||'','Mã DA':V('bbDA'),'Loại biên bản':V('bbLoai'),
+        'Ngày nghiệm thu':V('bbNgay'),'Đối tượng nghiệm thu':V('bbDT'),'Từ giờ':V('bbTu'),'Đến giờ':V('bbDen'),
+        'Địa điểm':V('bbDD'),'Thành phần tham gia':V('bbTP'),'Nội dung':V('bbND'),'Kết luận':V('bbKL'),
+        'Trạng thái':V('bbTT'),'Người lập':V('bbNguoi')};
+      if(isNew){ rec['Mã BB']=tempCode('BB', S.bienban||[], 'Mã BB'); (S.bienban=S.bienban||[]).push(rec); }
+      else Object.assign(x, rec);
+      closeModal(); pushOp('saveBienBan', rec);
+    },
+    (!isNew&&can('deleteAny'))?function(){ if(!confirm('Xóa biên bản?'))return; S.bienban=(S.bienban||[]).filter(t=>t['Mã BB']!==code); closeModal(); pushOp('deleteBienBan',{code}); toast('Đã xóa'); }:null
+  );
+}
+function bbPrint(code){
+  const x=(S.bienban||[]).find(t=>t['Mã BB']===code); if(!x) return;
+  const d=S.duan.find(p=>p['Mã DA']===x['Mã DA'])||{};
+  const gio=(x['Từ giờ']||x['Đến giờ'])?('từ '+(x['Từ giờ']||'…')+' đến '+(x['Đến giờ']||'…')):'';
+  const rowsInfo=[
+    ['Công trình / Dự án', d['Tên dự án']||'—'],
+    ['Đối tượng nghiệm thu', x['Đối tượng nghiệm thu']||'—'],
+    ['Địa điểm', x['Địa điểm']||d['Địa chỉ']||'—'],
+    ['Thời gian nghiệm thu', fmtDMY(x['Ngày nghiệm thu'])+(gio?' · '+gio:'')],
+    ['Thành phần tham gia', x['Thành phần tham gia']||'—']
+  ];
+  const html='<div class="doc-print">'
+    + '<div class="doc-head"><div class="doc-org">CÔNG TY MDC – MỘC ĐÔNG CHÂU</div><div class="doc-sub">Thiết kế · Sản xuất · Thi công nội thất</div></div>'
+    + '<h1 class="doc-title">BIÊN BẢN NGHIỆM THU</h1>'
+    + '<div class="doc-loai">'+esc(x['Loại biên bản']||'')+'</div>'
+    + '<table class="doc-info">'+rowsInfo.map(r=>'<tr><td class="k">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'
+    + '<div class="doc-sec"><b>1. Nội dung nghiệm thu</b><p>'+esc(x['Nội dung']||'…')+'</p></div>'
+    + '<div class="doc-sec"><b>2. Kết luận</b><p>'+esc(x['Kết luận']||'…')+'</p></div>'
+    + '<div class="doc-sign"><div><b>ĐẠI DIỆN CHỦ ĐẦU TƯ</b><div class="ln"></div></div>'
+      + '<div><b>TƯ VẤN GIÁM SÁT</b><div class="ln"></div></div>'
+      + '<div><b>ĐƠN VỊ THI CÔNG</b><div class="ln"></div><div class="nm">'+esc(x['Người lập']||'')+'</div></div></div>'
+    + '<div class="doc-foot">Mã biên bản: '+esc(x['Mã BB'])+' · Trạng thái: '+esc(x['Trạng thái']||'Nháp')+' · Xuất ngày '+fmtDMY(today())+'</div>'
+    + '</div>';
+  setPrintPage('portrait');
+  let holder=document.getElementById('docPrintHolder'); if(holder) holder.remove();
+  holder=document.createElement('div'); holder.id='docPrintHolder'; holder.innerHTML=html;
+  document.body.appendChild(holder); document.body.classList.add('print-doc');
+  const cleanup=()=>{ document.body.classList.remove('print-doc'); const h=document.getElementById('docPrintHolder'); if(h) h.remove(); window.removeEventListener('afterprint',cleanup); };
+  window.addEventListener('afterprint',cleanup);
+  setTimeout(()=>{ window.print(); setTimeout(cleanup,800); },60);
 }
 
 /* ================================================================
