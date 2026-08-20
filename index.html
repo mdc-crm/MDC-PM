@@ -239,6 +239,32 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .gantt-legend span{display:inline-flex;align-items:center;gap:5px}
 .gantt-legend i{display:inline-block;width:14px;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--brass),var(--brass-deep))}
 .gantt-legend i.done{background:#558B2F} .gantt-legend i.late{background:#B71C1C} .gantt-legend i.pause{background:#666}
+/* ★ Gantt v2 — lớp Kế hoạch↔Thực tế + trạng thái + in PDF */
+.gantt-bar.run{background:linear-gradient(90deg,var(--brass),var(--brass-deep))}
+.gantt-bar.blocked{background:linear-gradient(90deg,#FB8C00,#E65100)}
+.gantt-bar.wait{background:linear-gradient(90deg,#42A5F5,#1565C0)}
+.gantt-bar.notstarted{background:#E5E1D8;color:#6B7280;box-shadow:none;border:1px dashed #B8B2A4}
+.gantt-bar.plan{background:transparent;border:1.5px dashed var(--brass);color:var(--brass-deep);box-shadow:none;opacity:.9}
+.gantt-bar.actual{top:11px;height:12px;font-size:9.5px}
+.gantt-bar.plan.thin{top:5px;height:8px;padding:0;border-radius:4px}
+.g-toggle{display:inline-flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap}
+.g-toggle button{padding:5px 11px;font-size:12px;border:1px solid var(--line-strong);background:var(--card);border-radius:var(--r-sm);cursor:pointer;color:var(--ink-soft)}
+.g-toggle button.on{background:var(--brass);color:#fff;border-color:var(--brass-deep);font-weight:600}
+.gantt-legend i.run{background:linear-gradient(90deg,var(--brass),var(--brass-deep))} .gantt-legend i.blocked{background:#E65100} .gantt-legend i.wait{background:#1565C0} .gantt-legend i.notstarted{background:#D8D2C6} .gantt-legend i.plan{background:transparent;border:1.5px dashed var(--brass)}
+.gantt-print-head{display:none}
+#ganttPrintHolder{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body.print-gantt{background:#fff!important}
+  body.print-gantt>*{display:none!important}
+  body.print-gantt>#ganttPrintHolder{display:block!important;position:absolute;left:0;top:0;width:100%}
+  #ganttPrintHolder .gantt-print-head{display:block;margin-bottom:10px}
+  #ganttPrintHolder .gantt-wrap{overflow:visible!important;border:none!important;box-shadow:none!important;max-height:none!important}
+  #ganttPrintHolder .g-toolbar,#ganttPrintHolder .g-toggle{display:none!important}
+  #ganttPrintHolder .gantt-bar,#ganttPrintHolder .gantt-legend i{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #ganttPrintHolder .gantt-bar-cell{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #ganttPrintHolder .gantt-row.phase>div,#ganttPrintHolder .gantt-row.head>div{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 
 /* ★ Nhóm 3 — Calendar Lịch hẹn */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden}
@@ -2162,9 +2188,17 @@ function vExpenses(){
 function vGantt(){
   const myDuan = visibleProjects();
   const myCV = visibleTasks();
-  let html = '<div class="toolbar"><select id="gProj" onchange="window._gp=this.value;render()">'
+  const layer = window._gLayer || 'both';
+  let html = '<div class="toolbar g-toolbar"><select id="gProj" onchange="window._gp=this.value;render()">'
     + '<option value="">— Chọn dự án để xem Gantt —</option>'
-    + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._gp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select></div>';
+    + myDuan.map(d=>'<option value="'+d['Mã DA']+'"'+(window._gp===d['Mã DA']?' selected':'')+'>'+esc(d['Tên dự án'])+'</option>').join('') + '</select>'
+    + (window._gp ? '<span class="g-toggle"><span class="muted" style="font-size:11.5px">Lớp:</span>'
+        + '<button class="'+(layer==='both'?'on':'')+'" onclick="gLayer(\'both\')">Kế hoạch + Thực tế</button>'
+        + '<button class="'+(layer==='plan'?'on':'')+'" onclick="gLayer(\'plan\')">Kế hoạch</button>'
+        + '<button class="'+(layer==='actual'?'on':'')+'" onclick="gLayer(\'actual\')">Thực tế</button>'
+        + '<button onclick="printGantt()" style="border-color:var(--brass-deep);color:var(--brass-deep);font-weight:600">⎙ Xuất PDF</button>'
+        + '</span>' : '')
+    + '</div>';
 
   if(!window._gp) {
     return html + '<div class="empty"><b>Chọn 1 dự án ở trên</b>Gantt sẽ vẽ thanh tiến độ cho tất cả công việc theo timeline. Mỗi việc 1 thanh ngang — xưởng & công trường chạy song song nhìn thấy ngay.</div>';
@@ -2224,28 +2258,74 @@ function vGantt(){
     grp.items.forEach(t => {
       const sd = t['Ngày bắt đầu'] ? new Date(t['Ngày bắt đầu']) : null;
       const ed = t['Hạn hoàn thành'] ? new Date(t['Hạn hoàn thành']) : null;
-      let bar = '';
+      const tt = t['Trạng thái'] || '';
+      const pct = Number(t['Tiến độ (%)']) || 0;
+      const off = d => Math.max(0, Math.round((d - minD)/86400000)) * dayW;
+      const wid = (a,b) => Math.max(1, Math.round((b - a)/86400000) + 1) * dayW;
+      let bars = '';
       if(sd && ed){
-        const start = Math.max(0, Math.round((sd - minD)/86400000)) * dayW;
-        const dur   = Math.max(1, Math.round((ed - sd)/86400000) + 1) * dayW;
-        const tt = t['Trạng thái'];
-        const cls = tt==='Hoàn thành' ? 'done'
-                  : tt==='Tạm dừng' ? 'pause'
-                  : (ed < todayD && tt!=='Hoàn thành' && tt!=='Đã phê duyệt') ? 'late' : '';
-        const pct = Number(t['Tiến độ (%)'])||0;
-        const tip = esc(t['Tên công việc']) + ' · ' + esc(t['Phụ trách']||'—') + ' · ' + esc(sd.toISOString().slice(0,10)) + ' → ' + esc(ed.toISOString().slice(0,10)) + ' · ' + pct + '%';
-        bar = '<div class="gantt-bar '+cls+'" style="left:'+start+'px;width:'+dur+'px" title="'+tip+'" onclick="formTask(\''+t['Mã CV']+'\')">'+esc(t['Tên công việc'])+'</div>';
+        // ----- Lớp Thực tế: suy ra từ trạng thái + ngày hoàn thành -----
+        let aStart = sd, aEnd = null, acls = 'run';
+        if(tt==='Hoàn thành'){ aEnd = t['Ngày hoàn thành'] ? new Date(t['Ngày hoàn thành']) : ed; acls = 'done'; }
+        else if(tt==='Đang vướng'){ aEnd = todayD; acls = 'blocked'; }
+        else if(tt==='Tạm dừng'){ aEnd = todayD; acls = 'pause'; }
+        else if(tt==='Chưa bắt đầu' || tt==='Từ chối'){ aEnd = null; }
+        else { aEnd = todayD; acls = 'run'; } // Đang làm, Chờ duyệt, Đã phê duyệt
+        if(aEnd){ if(aEnd < aStart) aEnd = aStart; if(aEnd > maxD) aEnd = maxD; }
+        if(acls !== 'done' && aEnd && ed < todayD) acls = 'late';
+        const nm = esc(t['Tên công việc']);
+        const dmy = d => esc(d.toISOString().slice(0,10));
+        const tip = nm + ' · ' + esc(t['Phụ trách']||'—') + ' · KH: ' + dmy(sd) + '→' + dmy(ed)
+                  + (aEnd ? ' · TT: ' + dmy(aStart) + '→' + dmy(aEnd) : '') + ' · ' + esc(tt||'—') + ' · ' + pct + '%';
+        const planStart = off(sd), planW = wid(sd, ed);
+        const planCls = (layer==='both') ? 'plan thin' : 'plan';
+        const planBar = '<div class="gantt-bar '+planCls+'" style="left:'+planStart+'px;width:'+planW+'px" title="'+tip+'" onclick="formTask(\''+t['Mã CV']+'\')">'+(layer==='plan'?nm:'')+'</div>';
+        let actBar = '';
+        if(aEnd){
+          const actCls = (layer==='both' ? 'actual ' : '') + acls;
+          actBar = '<div class="gantt-bar '+actCls+'" style="left:'+off(aStart)+'px;width:'+wid(aStart,aEnd)+'px" title="'+tip+'" onclick="formTask(\''+t['Mã CV']+'\')">'+nm+'</div>';
+        } else if(layer==='actual'){
+          actBar = '<div class="gantt-bar notstarted" style="left:'+planStart+'px;width:'+planW+'px" title="'+tip+'" onclick="formTask(\''+t['Mã CV']+'\')">'+nm+'</div>';
+        }
+        bars = layer==='plan' ? planBar : layer==='actual' ? actBar : (planBar + actBar);
       }
       gantt += '<div class="gantt-row"><div class="gantt-name" style="cursor:pointer" onclick="formTask(\''+t['Mã CV']+'\')"><b style="font-size:12px">'+esc(t['Tên công việc'])+'</b><div class="muted" style="font-size:10.5px">'+esc(t['Phụ trách']||'—')+'</div></div>'
-        + '<div class="gantt-bar-cell" style="width:'+barWidth+'px">' + bar
+        + '<div class="gantt-bar-cell" style="width:'+barWidth+'px">' + bars
         + (todayInRange ? '<div class="gantt-today" style="left:'+todayOffset+'px"></div>' : '')
         + '</div></div>';
     });
   });
   gantt += '</div>';
-  gantt += '<div class="gantt-legend"><span><i></i> Đang chạy</span><span><i class="done"></i> Hoàn thành</span><span><i class="late"></i> Trễ hạn</span><span><i class="pause"></i> Tạm dừng</span><span style="margin-left:auto">Hôm nay: <span style="color:#E53935;font-weight:700">|</span></span></div>';
+  gantt += '<div class="gantt-legend"><span><i class="plan"></i> Kế hoạch</span><span><i class="run"></i> Đang làm</span><span><i class="done"></i> Hoàn thành</span><span><i class="late"></i> Trễ hạn</span><span><i class="blocked"></i> Vướng</span><span><i class="pause"></i> Tạm dừng</span><span><i class="notstarted"></i> Chưa bắt đầu</span><span style="margin-left:auto">Hôm nay: <span style="color:#E53935;font-weight:700">|</span></span></div>';
   gantt += '</div>';
-  return html + gantt;
+  // Tiêu đề chỉ hiện khi in / xuất PDF
+  const gDone = tasks.filter(t=>t['Trạng thái']==='Hoàn thành').length;
+  const gPct = Math.round(gDone / tasks.length * 100);
+  const gPM = proj['Quản lý dự án'] || proj['PM'] || proj['Người quản lý'] || '';
+  const printHead = '<div class="gantt-print-head">'
+    + '<div style="font-size:18px;font-weight:800;color:#1E2329;letter-spacing:.5px">SƠ ĐỒ TIẾN ĐỘ (GANTT)</div>'
+    + '<div style="font-size:12px;color:#6B7280;margin-top:2px">'
+      + esc(proj['Mã DA']||'') + ' · ' + esc(proj['Tên dự án']||'')
+      + (gPM ? ' · PM: ' + esc(gPM) : '')
+      + ' · Tiến độ ' + gPct + '% · Xuất ngày ' + fmtDMY(today())
+    + '</div></div>';
+  return html + '<div id="ganttPrintArea">' + printHead + gantt + '</div>';
+}
+// Chuyển lớp hiển thị Gantt (Kế hoạch / Thực tế / cả hai)
+function gLayer(v){ window._gLayer = v; render(); }
+// Xuất PDF sơ đồ Gantt: nhân bản vùng biểu đồ ra ngoài body rồi gọi hộp thoại in (Lưu dạng PDF)
+function printGantt(){
+  const area = document.getElementById('ganttPrintArea');
+  if(!area){ window.print(); return; }
+  const old = document.getElementById('ganttPrintHolder'); if(old) old.remove();
+  const holder = document.createElement('div');
+  holder.id = 'ganttPrintHolder';
+  holder.innerHTML = area.innerHTML;
+  document.body.appendChild(holder);
+  document.body.classList.add('print-gantt');
+  const cleanup = () => { document.body.classList.remove('print-gantt'); const h = document.getElementById('ganttPrintHolder'); if(h) h.remove(); window.removeEventListener('afterprint', cleanup); };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => { window.print(); setTimeout(cleanup, 800); }, 60);
 }
 
 /* ---------- ★ Nhóm 3 — Trang Lịch hẹn (Calendar + List) ---------- */
