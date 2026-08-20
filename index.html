@@ -5902,7 +5902,7 @@ function pjKeHoach(d){
         + '<button class="btn btn-ghost" style="padding:6px 13px;font-size:12.5px" onclick="formHangMuc(null,\''+code+'\')">+ Hạng mục thủ công</button>':'')
     + '</div>';
 
-  if(!hm.length){
+  if(!hm.length && !cv.length){
     const cnt = tvCount(d['Loại hình']);
     return html + '<div class="empty" style="padding:28px 20px"><b>Chưa lập kế hoạch hạng mục</b>'
       + 'Hạng mục là nhóm công việc lớn trong mỗi giai đoạn (vd: Khảo sát hiện trạng, Phối cảnh 3D, Lắp đặt nội thất…).<br><br>'
@@ -5918,8 +5918,12 @@ function pjKeHoach(d){
   hm.forEach(h=>{ if(h['Ngày bắt đầu KH'])ds.push(new Date(h['Ngày bắt đầu KH'])); if(h['Ngày kết thúc KH'])ds.push(new Date(h['Ngày kết thúc KH'])); });
   cv.forEach(c=>{ if(c['Ngày bắt đầu'])ds.push(new Date(c['Ngày bắt đầu'])); if(c['Hạn hoàn thành'])ds.push(new Date(c['Hạn hoàn thành'])); });
   if(!ds.length){
-    return html + '<div class="empty"><b>Hạng mục chưa có ngày kế hoạch</b>Bấm vào từng hạng mục để đặt Ngày bắt đầu / kết thúc kế hoạch</div>'
-      + pjHangMucList(hm,cv,d) + '</div>';
+    let inner = '<div class="empty"><b>Chưa có ngày để vẽ biểu đồ</b>Đặt Ngày bắt đầu/kết thúc cho hạng mục, hoặc Ngày bắt đầu/Hạn hoàn thành cho đầu việc, để hiện trên Gantt.</div>';
+    if(hm.length) inner += pjHangMucList(hm,cv,d);
+    if(cv.length) inner += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Đầu việc</th><th>Giai đoạn</th><th>Hạng mục</th><th>Phụ trách</th><th>Trạng thái</th></tr></thead><tbody>'
+      + cv.map(c=>{const h=hm.find(x=>x['Mã HM']===c['Mã HM']);return '<tr class="row-click" onclick="formTask(\''+c['Mã CV']+'\')"><td><b>'+esc(c['Tên công việc'])+'</b></td><td class="muted">'+esc(c['Giai đoạn']||'—')+'</td><td class="muted">'+(h?esc(h['Tên hạng mục']):'<span style="color:var(--warn)">chưa gán</span>')+'</td><td>'+esc(c['Phụ trách']||'—')+'</td><td>'+tagTT(c['Trạng thái'])+'</td></tr>';}).join('')
+      + '</tbody></table></div>';
+    return html + inner + '</div>';
   }
   let minD = new Date(Math.min(...ds)), maxD = new Date(Math.max(...ds));
   minD.setDate(minD.getDate()-3); maxD.setDate(maxD.getDate()+3);
@@ -6008,6 +6012,28 @@ function pjKeHoach(d){
     html += '<div class="pl-row phase"><div class="pl-name">Ngoài quy trình</div><div></div></div>';
     orphan.forEach(h=>{
       html += '<div class="pl-row"><div class="pl-name" style="cursor:pointer" onclick="formHangMuc(\''+esc(h['Mã HM'])+'\')"><b>'+esc(h['Tên hạng mục'])+'</b></div><div class="pl-track"></div></div>';
+    });
+  }
+  // ===== Đầu việc CHƯA GÁN HẠNG MỤC — vẫn hiện để không bị ẩn khỏi Kế hoạch =====
+  const hmCodes = new Set(hm.map(h=>h['Mã HM']));
+  const orphanTasks = cv.filter(c=>!c['Mã HM'] || !hmCodes.has(c['Mã HM']));
+  if(orphanTasks.length){
+    const oOpen = window._pjOpen['__orphan'] !== false; // mặc định mở
+    const oDone = orphanTasks.filter(c=>c['Trạng thái']==='Hoàn thành').length;
+    html += '<div class="pl-row phase" onclick="window._pjOpen[\'__orphan\']='+(oOpen?'false':'true')+';render()"><div class="pl-name">'
+      + '<span class="pl-caret '+(oOpen?'open':'')+'">▶</span> Chưa gán hạng mục'
+      + '<span class="pl-pct '+(oDone===orphanTasks.length?'full':oDone?'':'zero')+'">'+orphanTasks.length+' việc</span>'
+      + '<div class="muted" style="font-size:11px;margin-top:2px;font-weight:400">Đầu việc tạo trực tiếp, chưa thuộc hạng mục nào — mở việc để gán vào hạng mục.</div>'
+      + '</div><div></div></div>';
+    if(oOpen) orphanTasks.forEach(c=>{
+      let tb = '';
+      if(window._pjShowTT && c['Ngày bắt đầu'] && c['Hạn hoàn thành']){
+        const late = new Date(c['Hạn hoàn thành'])<todayD && c['Trạng thái']!=='Hoàn thành';
+        tb = '<div class="pl-bar tt '+(c['Trạng thái']==='Hoàn thành'?'done':late?'late':'')+'" style="left:'+posOf(c['Ngày bắt đầu'])+'px;width:'+widOf(c['Ngày bắt đầu'],c['Hạn hoàn thành'])+'px" title="'+esc(c['Tên công việc'])+' · '+esc(c['Phụ trách']||'')+'" onclick="event.stopPropagation();formTask(\''+c['Mã CV']+'\')">'+(Number(c['Tiến độ (%)'])||0)+'%</div>';
+      }
+      html += '<div class="pl-row task"><div class="pl-name" style="cursor:pointer" onclick="formTask(\''+c['Mã CV']+'\')">'
+        + esc(c['Tên công việc'])+'<div class="muted" style="font-size:10.5px">'+esc(c['Giai đoạn']||'—')+' · '+esc(c['Phụ trách']||'—')+' · '+esc(c['Trạng thái']||'')+'</div></div>'
+        + '<div class="pl-track">'+tb+(todayIn?'<div class="pl-today" style="left:'+todayOff+'px"></div>':'')+'</div></div>';
     });
   }
   html += '</div>';
