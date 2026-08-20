@@ -1524,6 +1524,7 @@ const NAV_GROUPS = [
     {id:'anToanCL',  name:'An toàn & CL',    icon:'🛡'},
     {id:'khongPH',   name:'Sự không phù hợp',icon:'⚠'},
     {id:'ruiro',     name:'Rủi ro',           icon:'◬'},
+    {id:'baocaoTC',  name:'Báo cáo tài chính',icon:'📊'},
   ]},
   { label: null, items: [
     {id:'gantt',     name:'Tiến độ Gantt',   icon:'▭'},
@@ -1608,7 +1609,7 @@ function onAddClick(){
 function render(){
   const root = document.getElementById('viewRoot');
   const fn = {
-    dashboard:vDashboard, duan:vProjects, congviec:vTasks, gantt:vGantt, bienban:vBienBan,
+    dashboard:vDashboard, duan:vProjects, congviec:vTasks, gantt:vGantt, bienban:vBienBan, baocaoTC:vBaoCaoTC,
     chiphi:vExpenses, lichhen:vAppointments, thaubo:vSubcontractors,
     nhansu:vStaff, caidat:vSettings, kiemtra:vDataHealth,
     // v2.0 mới
@@ -5180,6 +5181,39 @@ function formSafetyRecord(code){
 /* ================================================================
    ★ Biên bản nghiệm thu — 4 mẫu chuẩn xây dựng + in PDF
 ================================================================ */
+function vBaoCaoTC(){
+  const tab = window._bcTab || 'lailo';
+  let html = '<div class="cv-head"><div><h2 style="margin:0">Báo cáo tài chính</h2>'
+    + '<div class="muted" style="font-size:13px;margin-top:2px">Lãi/lỗ chi tiết theo dự án và dòng tiền thực tế — từ số liệu đã ghi.</div></div></div>';
+  html += '<div class="fin-tabs" style="margin-bottom:14px">'
+    + '<button class="'+(tab==='lailo'?'on':'')+'" onclick="window._bcTab=\'lailo\';render()">Lãi/lỗ theo dự án</button>'
+    + '<button class="'+(tab==='dongtien'?'on':'')+'" onclick="window._bcTab=\'dongtien\';render()">Dòng tiền thực tế</button>'
+    + '</div>';
+  if(tab==='dongtien'){
+    const per = dashPeriod();
+    html += '<div class="fin-pills" style="margin-bottom:12px">Kỳ: '
+      + [['thang','Tháng này'],['quy','Quý này'],['nam','Năm nay']].map(k=>'<button class="'+(per===k[0]?'on':'')+'" onclick="window._dsKy=\''+k[0]+'\';render()">'+k[1]+'</button>').join('')
+      + '</div>';
+    html += dashCashflow(S.thanhtoan||[], visibleExpenses(), S.ttthauphu||[]);
+    const thuByDA={}, chiByDA={};
+    (S.thanhtoan||[]).forEach(x=>{ if(dashInRange(x['Ngày thu'])) thuByDA[x['Mã DA']]=(thuByDA[x['Mã DA']]||0)+(Number(x['Đã thu (đ)'])||0); });
+    visibleExpenses().forEach(x=>{ if(dashInRange(x['Ngày chi'])) chiByDA[x['Mã DA']]=(chiByDA[x['Mã DA']]||0)+(Number(x['Số tiền (đ)'])||0); });
+    (S.ttthauphu||[]).filter(x=>x['Trạng thái']==='Đã thanh toán').forEach(x=>{ if(dashInRange(x['Ngày thanh toán'])) chiByDA[x['Mã DA']]=(chiByDA[x['Mã DA']]||0)+ttpChi(x); });
+    const das=[...new Set([...Object.keys(thuByDA),...Object.keys(chiByDA)])].filter(Boolean);
+    if(das.length){
+      html += '<div class="card" style="margin-top:12px"><div class="ct">Thu / chi thực tế theo dự án (trong kỳ)</div><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dự án</th><th class="num">Đã thu</th><th class="num">Đã chi</th><th class="num">Ròng</th></tr></thead><tbody>';
+      let TT=0,TC=0;
+      das.forEach(da=>{ const thu=thuByDA[da]||0, chi=chiByDA[da]||0; TT+=thu; TC+=chi;
+        html += '<tr><td><b>'+esc(projName(da))+'</b></td><td class="num">'+fmtTr(thu)+'</td><td class="num">'+fmtTr(chi)+'</td><td class="num" style="color:'+(thu-chi>=0?'var(--ok)':'var(--bad)')+'">'+(thu-chi>=0?'+':'')+fmtTr(thu-chi)+'</td></tr>';
+      });
+      html += '<tr style="font-weight:700;background:var(--paper)"><td>TỔNG CỘNG</td><td class="num">'+fmtTr(TT)+'</td><td class="num">'+fmtTr(TC)+'</td><td class="num" style="color:'+(TT-TC>=0?'var(--ok)':'var(--bad)')+'">'+(TT-TC>=0?'+':'')+fmtTr(TT-TC)+'</td></tr>';
+      html += '</tbody></table></div></div></div>';
+    }
+  } else {
+    html += finLaiLo();
+  }
+  return html;
+}
 function pjBienBan(d){
   const code=d['Mã DA']; const canEd=canEditProject(d);
   const all=(S.bienban||[]).filter(x=>x['Mã DA']===code);
