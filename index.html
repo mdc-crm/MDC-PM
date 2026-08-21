@@ -76,6 +76,33 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
 .topbar h2{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.2px;color:var(--wood-900)}
 .topbar .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gsearch{position:relative;flex:1 1 240px;max-width:440px;min-width:180px}
+.gsearch input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:var(--card);color:var(--ink);font-family:inherit}
+.gsearch input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px var(--brass-soft)}
+.gs-mag{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--ink-faint);pointer-events:none}
+.gs-panel{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-sm);box-shadow:0 10px 30px rgba(0,0,0,.14);max-height:400px;overflow:auto;z-index:60;display:none}
+.gs-panel.open{display:block}
+.gs-grp{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-faint);padding:9px 12px 3px;font-weight:700;background:var(--paper)}
+.gs-item{padding:8px 12px;cursor:pointer;border-top:1px solid var(--line);display:flex;gap:9px;align-items:center}
+.gs-item:hover{background:var(--brass-soft)}
+.gs-ic{width:20px;text-align:center;color:var(--brass-deep);flex:none}
+.gs-empty{padding:16px 12px;color:var(--ink-faint);font-size:12.5px}
+.notif-wrap{position:relative}
+.notif-btn{position:relative;background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:16px;line-height:1}
+.notif-btn:hover{border-color:var(--brass)}
+.notif-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;background:var(--bad);color:#fff;border-radius:9px;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--card)}
+.notif-panel{position:absolute;top:calc(100% + 6px);right:0;width:360px;max-width:88vw;max-height:440px;overflow:auto;background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-sm);box-shadow:0 12px 34px rgba(0,0,0,.16);z-index:70;display:none}
+.notif-panel.open{display:block}
+.nf-head{padding:11px 14px;font-weight:700;font-size:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:8px;position:sticky;top:0;background:var(--card)}
+.nf-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);font-weight:700;padding:9px 14px 3px;background:var(--paper)}
+.nf-i{display:flex;gap:10px;align-items:flex-start;padding:9px 14px;border-top:1px solid var(--line);cursor:pointer}
+.nf-i:hover{background:var(--brass-soft)}
+.nf-ic{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.nf-ic.bad{background:var(--bad-bg);color:var(--bad)} .nf-ic.warn{background:var(--warn-bg);color:var(--warn)} .nf-ic.info{background:var(--brass-soft);color:var(--brass-deep)}
+.nf-t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-s{font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-more{padding:6px 14px;font-size:11.5px;color:var(--ink-faint)}
+.nf-empty{padding:26px 16px;text-align:center;color:var(--ink-soft);font-size:13px}
 .sync-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);padding:6px 11px;border-radius:99px}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
 .sync-dot.off{background:var(--bad)}
@@ -789,7 +816,16 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
     <div class="topbar">
       <button class="pm-burger" id="pmBurger" onclick="pmDrawerOpen()" aria-label="Menu">☰</button>
       <h2 id="viewTitle">Tổng quan</h2>
+      <div class="gsearch">
+        <span class="gs-mag">⌕</span>
+        <input id="gsInput" type="text" autocomplete="off" placeholder="Tìm dự án, công việc, khách, hồ sơ, biên bản…" oninput="gSearch(this.value)" onfocus="gSearch(this.value)" onblur="gsBlur()">
+        <div class="gs-panel" id="gsPanel"></div>
+      </div>
       <div class="actions">
+        <div class="notif-wrap">
+          <button class="notif-btn" id="notifBtn" onclick="toggleNotif(event)" aria-label="Thông báo">🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span></button>
+          <div class="notif-panel" id="notifPanel"></div>
+        </div>
         <span class="sync-chip"><span class="sync-dot" id="syncDot"></span><span id="syncText">Đã đồng bộ</span></span>
         <button class="btn btn-ghost" style="padding:8px 12px" onclick="syncAll(true)" title="Đồng bộ ngay">⟳</button>
         <button class="btn btn-brass hide" id="btnAdd" onclick="onAddClick()">+ Thêm mới</button>
@@ -1579,6 +1615,88 @@ function pmDrawerClose(){
   document.getElementById('pmDrawerOverlay').classList.remove('open');
   setTimeout(()=>{ const o=document.getElementById('pmDrawerOverlay'); if(o) o.style.display='none'; },260);
 }
+/* ================= TÌM KIẾM TOÀN CỤC ================= */
+function gSearch(q){
+  const panel=document.getElementById('gsPanel'); if(!panel) return;
+  q=String(q||'').trim().toLowerCase();
+  if(!q){ panel.classList.remove('open'); panel.innerHTML=''; return; }
+  const norm=s=>String(s||'').toLowerCase(), hit=(...fs)=>fs.some(f=>norm(f).includes(q));
+  window.__gsActs=[];
+  const item=(ic,t,s,fn)=>{ const i=window.__gsActs.length; window.__gsActs.push(fn);
+    return '<div class="gs-item" onmousedown="gsGo('+i+')"><span class="gs-ic">'+ic+'</span><div style="min-width:0">'
+      + '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(t||'(không tên)')+'</div>'
+      + '<div class="muted" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s)+'</div></div></div>'; };
+  const grp=(lbl,arr)=> arr.length ? '<div class="gs-grp">'+lbl+' ('+arr.length+')</div>'+arr.join('') : '';
+  let html='';
+  html += grp('Dự án', (S.duan||[]).filter(d=>hit(d['Tên dự án'],d['Mã DA'],d['Khách hàng'])).slice(0,6)
+    .map(d=>item('▤',d['Tên dự án']||d['Mã DA'],d['Mã DA']+(d['Giai đoạn']?' · '+d['Giai đoạn']:''),()=>openProject(d['Mã DA']))));
+  html += grp('Công việc', tvSong(S.congviec||[]).filter(c=>hit(c['Tên công việc'],c['Phụ trách'])).slice(0,6)
+    .map(c=>item('✓',c['Tên công việc'],projName(c['Mã DA'])+' · '+(c['Trạng thái']||''),()=>formTask(c['Mã CV']))));
+  html += grp('Khách hàng', (S.leads||[]).filter(l=>hit(l.ten,l.sdt)).slice(0,6)
+    .map(l=>item('◎',l.ten||l.code,(l.sdt||'')+(l.loaiCT?' · '+l.loaiCT:''),()=>khMoHoSo(l.code))));
+  html += grp('Hồ sơ & tài liệu', (S.hosoTL||[]).filter(x=>hit(x['Tiêu đề'],x['Mã hồ sơ'],x['Mã TL'],x['Loại'])).slice(0,5)
+    .map(x=>item('📁',x['Tiêu đề']||x['Mã hồ sơ']||x['Mã TL']||'(hồ sơ)',(x['Loại']||'')+' · '+projName(x['Mã DA']),()=>go('hosoTL'))));
+  html += grp('Biên bản nghiệm thu', (S.bienban||[]).filter(x=>hit(x['Đối tượng nghiệm thu'],x['Mã BB'],x['Loại biên bản'])).slice(0,5)
+    .map(x=>item('📝',x['Đối tượng nghiệm thu']||x['Mã BB']||'(biên bản)',(x['Mã BB']||'')+' · '+projName(x['Mã DA']),()=>formBienBan(x['Mã BB']))));
+  html += grp('Thầu phụ', (S.thaubo||[]).filter(x=>hit(x['Tên / Công ty'],x['Loại thầu'],x['SĐT'])).slice(0,4)
+    .map(x=>item('◈',x['Tên / Công ty'],(x['Loại thầu']||'')+(x['SĐT']?' · '+x['SĐT']:''),()=>go('thaubo'))));
+  panel.innerHTML = html || '<div class="gs-empty">Không tìm thấy kết quả cho “'+esc(q)+'”</div>';
+  panel.classList.add('open');
+}
+function gsGo(i){ const a=(window.__gsActs||[])[i]; const p=document.getElementById('gsPanel'); if(p) p.classList.remove('open'); const inp=document.getElementById('gsInput'); if(inp) inp.value=''; if(typeof a==='function') a(); }
+function gsBlur(){ setTimeout(()=>{ const p=document.getElementById('gsPanel'); if(p) p.classList.remove('open'); }, 180); }
+
+/* ================= TRUNG TÂM THÔNG BÁO (CHUÔNG) ================= */
+function conLeftN(x){ return (Number(x['Giá trị (đ)'])||0)-(Number(x['Đã thu (đ)'])||0); }
+function buildNotifs(){
+  const cv = tvSong(S.congviec||[]);
+  const over = cv.filter(c=>c['Trạng thái']!=='Hoàn thành'&&c['Hạn hoàn thành']&&daysLeft(c['Hạn hoàn thành'])<0)
+    .sort((a,b)=>(a['Hạn hoàn thành']>b['Hạn hoàn thành']?1:-1));
+  const soon = cv.filter(c=>{const d=daysLeft(c['Hạn hoàn thành']);return c['Trạng thái']!=='Hoàn thành'&&d!==null&&d>=0&&d<=3;})
+    .sort((a,b)=>(a['Hạn hoàn thành']>b['Hạn hoàn thành']?1:-1));
+  let q=[]; try{ q=dashQueue(); }catch(e){}
+  const tt = S.thanhtoan||[];
+  const thuOver = tt.filter(x=>conLeftN(x)>0&&x['Trạng thái']!=='Hủy'&&daysLeft(x['Ngày đến hạn'])!==null&&daysLeft(x['Ngày đến hạn'])<0)
+    .sort((a,b)=>(a['Ngày đến hạn']>b['Ngày đến hạn']?1:-1));
+  const thuSoon = tt.filter(x=>{const d=daysLeft(x['Ngày đến hạn']);return conLeftN(x)>0&&x['Trạng thái']!=='Hủy'&&d!==null&&d>=0&&d<=7;})
+    .sort((a,b)=>(a['Ngày đến hạn']>b['Ngày đến hạn']?1:-1));
+  const daOver = (S.duan||[]).filter(d=>d['Trạng thái']==='Đang triển khai'&&d['Ngày kết thúc DK']&&daysLeft(d['Ngày kết thúc DK'])<0);
+  return {over,soon,q,thuOver,thuSoon,daOver, urgent: over.length+thuOver.length+q.length+daOver.length};
+}
+function renderNotifBadge(){
+  const b=document.getElementById('notifBadge'); if(!b) return;
+  let n=0; try{ n=buildNotifs().urgent; }catch(e){}
+  b.textContent = n>99?'99+':n; b.style.display = n?'flex':'none';
+  if(!window.__notifDocBound){ window.__notifDocBound=true;
+    document.addEventListener('click', function(e){ if(!e.target.closest('.notif-wrap')){ const p=document.getElementById('notifPanel'); if(p) p.classList.remove('open'); } });
+  }
+}
+function toggleNotif(e){
+  if(e) e.stopPropagation();
+  const p=document.getElementById('notifPanel'); if(!p) return;
+  if(p.classList.contains('open')){ p.classList.remove('open'); return; }
+  const N=buildNotifs(); window.__notifActs=[];
+  const row=(sev,ic,t,s,fn)=>{ const i=window.__notifActs.length; window.__notifActs.push(fn);
+    return '<div class="nf-i" onclick="notifGo('+i+')"><span class="nf-ic '+sev+'">'+ic+'</span><div style="min-width:0">'
+      + '<div class="nf-t">'+esc(t)+'</div><div class="nf-s">'+esc(s)+'</div></div></div>'; };
+  const sec=(lbl,items)=> items.length ? '<div class="nf-h">'+lbl+' ('+items.length+')</div>'+items.slice(0,6).join('')
+      +(items.length>6?'<div class="nf-more">… và '+(items.length-6)+' mục nữa</div>':'') : '';
+  const icQ={ps:'📋',mua:'🛒',cp:'₫',cv:'✓',tp:'◈'};
+  let html='';
+  html += sec('⛔ Quá hạn',
+    [...N.daOver.map(d=>row('bad','▤','Dự án trễ hạn: '+(d['Tên dự án']||d['Mã DA']),'Quá ngày kết thúc dự kiến '+(d['Ngày kết thúc DK']||''),()=>openProject(d['Mã DA']))),
+     ...N.over.map(c=>row('bad','✓',c['Tên công việc'],projName(c['Mã DA'])+' · trễ '+Math.abs(daysLeft(c['Hạn hoàn thành']))+' ngày',()=>formTask(c['Mã CV']))),
+     ...N.thuOver.map(x=>row('bad','₫','Đợt thu quá hạn: '+(x['Tên đợt']||'Đợt thu'),projName(x['Mã DA'])+' · '+fmtTr(conLeftN(x))+' · trễ '+Math.abs(daysLeft(x['Ngày đến hạn']))+' ngày',()=>formPayment(x['Mã TT'])))]);
+  html += sec('⏳ Chờ bạn duyệt',
+    N.q.map(x=>row('warn', icQ[x.t]||'•', x.lbl+': '+(x.ten||'—'), projName(x.da)+(x.v?' · '+fmtTr(x.v):''), ()=>{ if(window[x.open]) window[x.open](x.code); })));
+  html += sec('🔔 Sắp tới hạn',
+    [...N.soon.map(c=>row('info','✓',c['Tên công việc'],projName(c['Mã DA'])+' · '+(daysLeft(c['Hạn hoàn thành'])===0?'hạn hôm nay':'còn '+daysLeft(c['Hạn hoàn thành'])+' ngày'),()=>formTask(c['Mã CV']))),
+     ...N.thuSoon.map(x=>row('info','₫','Đợt thu: '+(x['Tên đợt']||'Đợt thu'),projName(x['Mã DA'])+' · '+fmtTr(conLeftN(x))+' · '+(daysLeft(x['Ngày đến hạn'])===0?'hạn hôm nay':'còn '+daysLeft(x['Ngày đến hạn'])+' ngày'),()=>formPayment(x['Mã TT'])))]);
+  p.innerHTML = '<div class="nf-head">Thông báo <span class="muted" style="font-weight:400;font-size:11px">'+(N.urgent?N.urgent+' việc cần chú ý':'Mọi thứ ổn')+'</span></div>'
+    + (html || '<div class="nf-empty">🎉 Không có thông báo — mọi thứ đúng tiến độ.</div>');
+  p.classList.add('open');
+}
+function notifGo(i){ const a=(window.__notifActs||[])[i]; const p=document.getElementById('notifPanel'); if(p) p.classList.remove('open'); if(typeof a==='function') a(); }
 function go(view){
   currentView = view;
   document.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === (view==='duanDetail'?'duan':view)));
@@ -1621,6 +1739,7 @@ function render(){
   }[currentView];
   root.innerHTML = fn ? fn() : '<div class="empty">Màn hình đang phát triển</div>';
   try { napBangDienThoai_(); } catch(e){}
+  try { renderNotifBadge(); } catch(e){}
 }
 
 // ★ CHUẨN HÓA MOBILE: biến bảng thành thẻ trên điện thoại (thêm class tbl-mb + data-label)
