@@ -1345,6 +1345,7 @@ async function syncAll(manual){
       S.hangmuc    = j.hangmuc   ||S.hangmuc   ||[];
       S.thanhtoan  = j.thanhtoan ||S.thanhtoan ||[];
       S.ttthauphu  = j.ttthauphu ||S.ttthauphu ||[];
+      S.xacnhanKH  = j.xacnhanKH ||S.xacnhanKH ||[];
       S.hdthauphu  = j.hdthauphu ||S.hdthauphu ||[];
       S.tamung     = j.tamung    ||S.tamung    ||[];
       S.thukhac    = j.thukhac   ||S.thukhac   ||[];
@@ -2689,18 +2690,47 @@ function vPortalMgr(){
     + kpi('Dự án thiếu SĐT', thieuSDT, thieuSDT?'khách chưa vào cổng được':'đủ SĐT', thieuSDT?'bad':'')
     + '</div>';
   if(!rows.length) return html + '<div class="empty" style="padding:28px 18px"><b>Chưa có khách để tạo cổng</b>Điền "SĐT khách" ở form dự án để khách đăng nhập cổng bằng số điện thoại.</div>';
-  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Khách hàng</th><th>SĐT</th><th class="num">Dự án</th><th>Mã truy cập (tuỳ chọn)</th><th>Link cổng</th></tr></thead><tbody>';
-  html += rows.map((r,i)=>{ const inpId='pc_'+i;
+  const xnAll = S.xacnhanKH||[];
+  const daOfCust = r => new Set(r.duan.map(d=>String(d['Mã DA']||'')));
+  html += '<div class="card"><div class="card-body" style="padding:0"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Khách hàng</th><th>SĐT</th><th class="num">Dự án</th><th class="num">Đã xác nhận</th><th>Mã truy cập (tuỳ chọn)</th><th>Link cổng</th></tr></thead><tbody>';
+  html += rows.map((r,i)=>{ const inpId='pc_'+i; const set=daOfCust(r);
+    const cnt=xnAll.filter(x=>set.has(String(x['Mã DA']||''))).length;
     return '<tr><td><b>'+esc(r.ten||'(chưa đặt tên)')+'</b><div class="muted" style="font-size:11px">'+r.duan.slice(0,2).map(d=>esc(d['Tên dự án'])).join(' · ')+(r.duan.length>2?' +'+(r.duan.length-2):'')+'</div></td>'
       + '<td>'+esc(r.sdt)+' '+btnZalo(r.sdt,'')+'</td>'
       + '<td class="num">'+r.duan.length+'</td>'
+      + '<td class="num">'+(cnt?'<span class="tag t-ok">'+cnt+'</span>':'<span class="muted">—</span>')+'</td>'
       + '<td><div style="display:flex;gap:5px"><input id="'+inpId+'" type="text" value="'+esc(r.code)+'" placeholder="—" style="width:96px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:6px;font-size:12px">'
         + '<button class="btn btn-ghost" style="padding:5px 9px;font-size:11.5px" onclick="portalSaveCode(\''+esc(r.sdt)+'\',\''+inpId+'\')">Lưu</button></div></td>'
       + '<td style="white-space:nowrap"><button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="portalCopy(\''+esc(r.sdt)+'\',document.getElementById(\''+inpId+'\').value)">⧉ Copy</button> '
         + '<button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="portalOpen(\''+esc(r.sdt)+'\',document.getElementById(\''+inpId+'\').value)">↗ Mở thử</button></td></tr>';
   }).join('');
   html += '</tbody></table></div></div></div>';
+
+  // ===== Xác nhận & chữ ký từ khách =====
+  const xn = [...xnAll].sort((a,b)=>((b['Thời gian']||'')>(a['Thời gian']||'')?1:-1));
+  window.__xnList = xn;
+  html += '<div class="card"><div class="card-body" style="padding:0">';
+  html += '<div class="ct" style="padding:12px 14px 6px">Xác nhận & chữ ký từ khách ('+xn.length+')</div>';
+  if(!xn.length){
+    html += '<div class="empty" style="padding:22px 16px">Chưa có xác nhận nào. Khi khách bấm "Đồng ý" hoặc ký trên cổng, sẽ hiện ở đây.<br><span class="muted" style="font-size:11.5px">(Cần deploy hàm portalConfirm ở backend — xem file PORTAL_backend_snippet.gs)</span></div>';
+  } else {
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Thời gian</th><th>Khách</th><th>Nội dung</th><th>Hình thức</th><th>Chữ ký</th></tr></thead><tbody>';
+    html += xn.map((x,i)=>'<tr><td class="muted">'+esc(x['Thời gian']||'')+'</td>'
+      + '<td><b>'+esc(x['Khách']||'')+'</b><div class="muted" style="font-size:11px">'+esc(projName(x['Mã DA']))+'</div></td>'
+      + '<td>'+esc(x['Loại']||'')+(x['Đối tượng']?': '+esc(x['Đối tượng']):'')+'</td>'
+      + '<td>'+(String(x['Hình thức'])==='Ký'?'<span class="tag t-brass">✍ Đã ký</span>':'<span class="tag t-ok">✔ Đồng ý</span>')+'</td>'
+      + '<td>'+((x['Chữ ký']&&String(x['Chữ ký']).indexOf('data:image')===0)?'<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="xemChuKy('+i+')">Xem chữ ký</button>':'<span class="muted">—</span>')+'</td></tr>').join('');
+    html += '</tbody></table></div>';
+  }
+  html += '</div></div>';
   return html;
+}
+function xemChuKy(i){
+  const x=(window.__xnList||[])[i]; if(!x) return;
+  openModal('Chữ ký khách — '+(x['Khách']||''),
+    '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">'+esc(x['Loại']||'')+(x['Đối tượng']?': '+esc(x['Đối tượng']):'')+' · '+esc(x['Thời gian']||'')+'</div>'
+    + '<div style="border:1px solid var(--line-strong);border-radius:var(--r-sm);background:#fff;padding:8px;text-align:center"><img src="'+esc(x['Chữ ký'])+'" alt="Chữ ký" style="max-width:100%;max-height:260px"></div>',
+    null);
 }
 // Đường găng: tìm chuỗi phụ thuộc dài nhất (theo tổng số ngày) → các việc trên chuỗi là "đường găng"
 function ganttCritical(tasks){
